@@ -72,4 +72,8 @@ where
     {
         self.0.flags()
     }
+
+    fn all(&self) -> Result<&'input [u8]> {
+        self.0.all()
+    }
 }

@@ -79,4 +79,8 @@ where
         // In case the flag was not found the wrapped reader is queried.
         self.0.flags::<T>()
     }
+
+    fn all(&self) -> Result<&'input [u8]> {
+        self.0.all()
+    }
 }
