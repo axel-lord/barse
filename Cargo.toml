@@ -7,5 +7,6 @@ edition = "2021"
 derive = ["dep:parse-derive"]
 
 [dependencies]
+bytesize = "1.2.0"
 parse-derive = { path = "../parse-derive", optional = true }
 thiserror = "1.0.40"
