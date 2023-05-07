@@ -8,3 +8,4 @@ derive = ["dep:parse-derive"]
 
 [dependencies]
 parse-derive = { path = "../parse-derive", optional = true }
+thiserror = "1.0.40"
