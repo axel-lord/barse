@@ -50,6 +50,8 @@ impl<'input, R> ByteRead<'input> for EndianByteReader<'input, R>
 where
     R: ByteRead<'input>,
 {
+    type AtByteRead = EndianByteReader<'input, R::AtByteRead>;
+
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
         self.0.read_ref(count)
     }
@@ -75,5 +77,13 @@ where
 
     fn all(&self) -> Result<&'input [u8]> {
         self.0.all()
+    }
+
+    fn at(&self, location: usize) -> Result<Self::AtByteRead> {
+        Ok(EndianByteReader(
+            self.0.at(location)?,
+            self.1,
+            PhantomData::default(),
+        ))
     }
 }
