@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{error::Error, ByteRead, Endian};
+use crate::{error::Error, ByteRead, Endian, Result};
 
 /// ByteRead wrapper that can give a set of flags.
 pub struct FlagByteReader<'input, R, const SIZE: usize>(R, [(TypeId, &'input dyn Any); SIZE]);
@@ -49,15 +49,15 @@ impl<'input, R, const SIZE: usize> ByteRead<'input> for FlagByteReader<'input, R
 where
     R: ByteRead<'input>,
 {
-    fn read_ref(&mut self, count: usize) -> Option<&'input [u8]> {
+    fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
         self.0.read_ref(count)
     }
 
-    fn remaining(&mut self) -> Option<&'input [u8]> {
+    fn remaining(&mut self) -> Result<&'input [u8]> {
         self.0.remaining()
     }
 
-    fn read<const COUNT: usize>(&mut self) -> Option<[u8; COUNT]> {
+    fn read<const COUNT: usize>(&mut self) -> Result<[u8; COUNT]> {
         self.0.read::<COUNT>()
     }
 
@@ -65,7 +65,7 @@ where
         self.0.endian()
     }
 
-    fn flags<T>(&self) -> Result<&'input T, Error>
+    fn flags<T>(&self) -> Result<&'input T>
     where
         T: Any,
     {
