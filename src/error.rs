@@ -12,6 +12,10 @@ pub enum Error {
     CheckedOperation,
     #[error("an unsupported value in a flag vas given, hint \"{0}\", value {1:?}")]
     UnsupportedFlagValue(Cow<'static, str>, Box<dyn Debug + Send + Sync>),
+    #[error("at is not supported for reader, {0}")]
+    AtNotSupported(Cow<'static, str>),
+    #[error("a function was called on a NilReader")]
+    NilRead,
 
     #[error(transparent)]
     TryFromIntError(#[from] TryFromIntError),
