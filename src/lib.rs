@@ -1,4 +1,4 @@
-pub use byte_read::ByteRead;
+pub use byte_read::{ByteRead, NilReader};
 pub use endian::Endian;
 pub use endian_byte_reader::EndianByteReader;
 pub use flag_byte_reader::FlagByteReader;
