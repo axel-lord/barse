@@ -70,7 +70,7 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
         impl <'__input #(,#generics)*> FromByteReader<'__input> for #name #stripped_generics #where_clause {
             fn from_byte_reader<R>(mut #reader: R) -> Option<Self>
             where
-                R: ::parse_common::ByteReader<'__input>,
+                R: ::parse_common::ByteRead<'__input>,
             {
                 #body
             }
