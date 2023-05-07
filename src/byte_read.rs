@@ -15,6 +15,8 @@ pub trait ByteRead<'input> {
         Endian::Little
     }
 
+    fn all(&self) -> Result<&'input [u8]>;
+
     fn flags<T>(&self) -> Result<&'input T>
     where
         T: Any,
@@ -50,6 +52,10 @@ where
     {
         (**self).flags()
     }
+
+    fn all(&self) -> Result<&'input [u8]> {
+        (**self).all()
+    }
 }
 
 impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
@@ -68,6 +74,10 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
         self.set_position(end.try_into()?);
 
         self.get_ref().get(range).ok_or(Error::SliceFailure)
+    }
+
+    fn all(&self) -> Result<&'input [u8]> {
+        Ok(self.get_ref())
     }
 
     fn remaining(&mut self) -> Result<&'input [u8]> {

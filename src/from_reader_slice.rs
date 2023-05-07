@@ -4,9 +4,9 @@ use bytesize::ByteSize;
 
 use crate::{error::Error, ByteRead, FromByteReader};
 
-pub trait SizeQuery {
+pub trait ByteSizeQuery {
     type Flag;
-    fn len(flag: &Self::Flag) -> usize;
+    fn size(flag: &Self::Flag) -> usize;
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -15,7 +15,7 @@ pub struct FromReaderSlice<'input, T, Q>(Cow<'input, [u8]>, PhantomData<(T, Q)>)
 impl<'input, T, Q> FromByteReader<'input> for FromReaderSlice<'input, T, Q>
 where
     T: FromByteReader<'input>,
-    Q: SizeQuery + 'static,
+    Q: ByteSizeQuery + 'static,
 {
     fn from_byte_reader<R>(mut reader: R) -> Result<Self, Error>
     where
@@ -24,7 +24,7 @@ where
         let flag = reader.flags::<Q::Flag>()?;
 
         Ok(Self(
-            Cow::Borrowed(reader.read_ref(Q::len(flag))?),
+            Cow::Borrowed(reader.read_ref(Q::size(flag))?),
             PhantomData::default(),
         ))
     }
