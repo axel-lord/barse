@@ -1,12 +1,8 @@
-use std::io::Cursor;
+use std::{any::Any, io::Cursor};
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub enum Endian {
-    Little,
-    Big,
-}
+use crate::Endian;
 
-pub trait ByteReader<'a> {
+pub trait ByteRead<'a> {
     fn read_ref(&mut self, count: usize) -> Option<&'a [u8]>;
 
     fn read<const COUNT: usize>(&mut self) -> Option<[u8; COUNT]> {
@@ -18,11 +14,18 @@ pub trait ByteReader<'a> {
     fn endian(&self) -> Endian {
         Endian::Little
     }
+
+    fn flags<T>(&self) -> Option<&'a T>
+    where
+        T: Any,
+    {
+        None
+    }
 }
 
-impl<'a, B> ByteReader<'a> for &mut B
+impl<'a, B> ByteRead<'a> for &mut B
 where
-    B: ByteReader<'a>,
+    B: ByteRead<'a>,
 {
     fn read<const COUNT: usize>(&mut self) -> Option<[u8; COUNT]> {
         (*self).read()
@@ -41,7 +44,7 @@ where
     }
 }
 
-impl<'a> ByteReader<'a> for Cursor<&'a [u8]> {
+impl<'a> ByteRead<'a> for Cursor<&'a [u8]> {
     fn read_ref(&mut self, count: usize) -> Option<&'a [u8]> {
         let start: usize = self.position().try_into().ok()?;
         let end = start.checked_add(count)?;
