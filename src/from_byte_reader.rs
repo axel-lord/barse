@@ -1,17 +1,17 @@
 use std::marker::PhantomData;
 
-use crate::{ByteReader, Endian, Padding};
+use crate::{ByteRead, Endian, Padding};
 
 pub trait FromByteReader<'input>: Sized {
     fn from_byte_reader<R>(reader: R) -> Option<Self>
     where
-        R: ByteReader<'input>;
+        R: ByteRead<'input>;
 }
 
 impl<'input, const COUNT: usize> FromByteReader<'input> for [u8; COUNT] {
     fn from_byte_reader<R>(mut reader: R) -> Option<Self>
     where
-        R: ByteReader<'input>,
+        R: ByteRead<'input>,
     {
         reader.read::<COUNT>()
     }
@@ -20,7 +20,7 @@ impl<'input, const COUNT: usize> FromByteReader<'input> for [u8; COUNT] {
 impl<'input, const SIZE: usize> FromByteReader<'input> for Padding<SIZE> {
     fn from_byte_reader<R>(mut reader: R) -> Option<Self>
     where
-        R: ByteReader<'input>,
+        R: ByteRead<'input>,
     {
         reader.read::<SIZE>()?;
         Some(Self)
@@ -30,7 +30,7 @@ impl<'input, const SIZE: usize> FromByteReader<'input> for Padding<SIZE> {
 impl<'input, T> FromByteReader<'input> for PhantomData<T> {
     fn from_byte_reader<R>(_reader: R) -> Option<Self>
     where
-        R: ByteReader<'input>,
+        R: ByteRead<'input>,
     {
         Some(PhantomData::default())
     }
@@ -39,7 +39,7 @@ impl<'input, T> FromByteReader<'input> for PhantomData<T> {
 impl<'input> FromByteReader<'input> for Vec<u8> {
     fn from_byte_reader<R>(mut reader: R) -> Option<Self>
     where
-        R: ByteReader<'input>,
+        R: ByteRead<'input>,
     {
         reader.remaining().map(Vec::from)
     }
@@ -64,7 +64,7 @@ macro_rules! from_byte_integer_reader_impl {
         impl<'input> FromByteReader<'input> for $ty {
             fn from_byte_reader<R>(mut reader: R) -> Option<Self>
             where
-                R: ByteReader<'input>,
+                R: ByteRead<'input>,
             {
                 let bytes = reader.read::<$si>()?;
                 Some(match reader.endian() {
