@@ -1,15 +1,15 @@
 use std::marker::PhantomData;
 
-use crate::{ByteRead, Endian, Padding};
+use crate::{ByteRead, Endian, Padding, Result};
 
 pub trait FromByteReader<'input>: Sized {
-    fn from_byte_reader<R>(reader: R) -> Option<Self>
+    fn from_byte_reader<R>(reader: R) -> Result<Self>
     where
         R: ByteRead<'input>;
 }
 
 impl<'input, const COUNT: usize> FromByteReader<'input> for [u8; COUNT] {
-    fn from_byte_reader<R>(mut reader: R) -> Option<Self>
+    fn from_byte_reader<R>(mut reader: R) -> Result<Self>
     where
         R: ByteRead<'input>,
     {
@@ -18,26 +18,26 @@ impl<'input, const COUNT: usize> FromByteReader<'input> for [u8; COUNT] {
 }
 
 impl<'input, const SIZE: usize> FromByteReader<'input> for Padding<SIZE> {
-    fn from_byte_reader<R>(mut reader: R) -> Option<Self>
+    fn from_byte_reader<R>(mut reader: R) -> Result<Self>
     where
         R: ByteRead<'input>,
     {
         reader.read::<SIZE>()?;
-        Some(Self)
+        Ok(Self)
     }
 }
 
 impl<'input, T> FromByteReader<'input> for PhantomData<T> {
-    fn from_byte_reader<R>(_reader: R) -> Option<Self>
+    fn from_byte_reader<R>(_reader: R) -> Result<Self>
     where
         R: ByteRead<'input>,
     {
-        Some(PhantomData::default())
+        Ok(PhantomData::default())
     }
 }
 
 impl<'input> FromByteReader<'input> for Vec<u8> {
-    fn from_byte_reader<R>(mut reader: R) -> Option<Self>
+    fn from_byte_reader<R>(mut reader: R) -> Result<Self>
     where
         R: ByteRead<'input>,
     {
@@ -62,12 +62,12 @@ macro_rules! from_byte_integer_reader_impl {
     ($($ty:ty: $si:expr),* $(,)?) => {
         $(
         impl<'input> FromByteReader<'input> for $ty {
-            fn from_byte_reader<R>(mut reader: R) -> Option<Self>
+            fn from_byte_reader<R>(mut reader: R) -> Result<Self>
             where
                 R: ByteRead<'input>,
             {
                 let bytes = reader.read::<$si>()?;
-                Some(match reader.endian() {
+                Ok(match reader.endian() {
                     Endian::Little => Self::from_le_bytes(bytes),
                     Endian::Big => Self::from_be_bytes(bytes),
                 })
