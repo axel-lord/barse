@@ -26,7 +26,7 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
                 .map(|field| field.ident.as_ref().unwrap());
 
             quote! {
-                Some(Self{#(#field_names: #field_init),*} )
+                Ok(Self{#(#field_names: #field_init),*} )
             }
         }
         syn::Fields::Unnamed(ref fields) => {
@@ -38,10 +38,10 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
             });
 
             quote! {
-                Some(Self(#(#field_init),*))
+                Ok(Self(#(#field_init),*))
             }
         }
-        syn::Fields::Unit => quote! {Some(Self)},
+        syn::Fields::Unit => quote! {Ok(Self)},
     };
 
     let stripped_generics = ast.generics.lt_token.is_some().then(|| {
@@ -68,7 +68,7 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
 
     quote! {
         impl <'__input #(,#generics)*> FromByteReader<'__input> for #name #stripped_generics #where_clause {
-            fn from_byte_reader<R>(mut #reader: R) -> Option<Self>
+            fn from_byte_reader<R>(mut #reader: R) -> ::parse_common::Result<Self>
             where
                 R: ::parse_common::ByteRead<'__input>,
             {
