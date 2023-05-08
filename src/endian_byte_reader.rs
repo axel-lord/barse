@@ -68,7 +68,7 @@ where
         self.1
     }
 
-    fn flags<T>(&self) -> Result<&'input T>
+    fn flags<T>(&self) -> Result<&T>
     where
         T: std::any::Any,
     {

@@ -26,7 +26,7 @@ pub trait ByteRead<'input> {
         Err(Error::AtNotSupported(type_name::<Self>().into()))
     }
 
-    fn flags<T>(&self) -> Result<&'input T>
+    fn flags<T>(&self) -> Result<&T>
     where
         T: Any,
     {
@@ -76,7 +76,7 @@ where
         (*self).remaining()
     }
 
-    fn flags<T>(&self) -> Result<&'input T>
+    fn flags<T>(&self) -> Result<&T>
     where
         T: Any,
     {
