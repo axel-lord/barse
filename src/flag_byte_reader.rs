@@ -6,17 +6,17 @@ use std::{
 use crate::{error::Error, ByteRead, Endian, Result};
 
 /// ByteRead wrapper that can give a set of flags.
-pub struct FlagByteReader<'input, R, const SIZE: usize>(R, [(TypeId, &'input dyn Any); SIZE]);
+pub struct FlagByteReader<'flags, R, const SIZE: usize>(R, [(TypeId, &'flags dyn Any); SIZE]);
 
-impl<'input, R, const SIZE: usize> FlagByteReader<'input, R, SIZE> {
-    pub fn new(reader: R, flags: [&'input dyn Any; SIZE]) -> Self
+impl<'flags, R, const SIZE: usize> FlagByteReader<'flags, R, SIZE> {
+    pub fn new(reader: R, flags: [&'flags dyn Any; SIZE]) -> Self
     where
-        R: ByteRead<'input>,
+        R: ByteRead<'flags>,
     {
         Self(reader, flags.map(|flag| (flag.type_id(), flag)))
     }
 
-    pub fn all_flags(&self) -> [&'input dyn Any; SIZE] {
+    pub fn all_flags(&self) -> [&'flags dyn Any; SIZE] {
         self.1.map(|flag| flag.1)
     }
 
@@ -25,29 +25,30 @@ impl<'input, R, const SIZE: usize> FlagByteReader<'input, R, SIZE> {
     }
 }
 
-impl<'input, R, const SIZE: usize> Deref for FlagByteReader<'input, R, SIZE> {
+impl<'flags, R, const SIZE: usize> Deref for FlagByteReader<'flags, R, SIZE> {
     type Target = R;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'input, R, const SIZE: usize> DerefMut for FlagByteReader<'input, R, SIZE> {
+impl<'flags, R, const SIZE: usize> DerefMut for FlagByteReader<'flags, R, SIZE> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<'input, R, const SIZE: usize> AsRef<R> for FlagByteReader<'input, R, SIZE> {
+impl<'flags, R, const SIZE: usize> AsRef<R> for FlagByteReader<'flags, R, SIZE> {
     fn as_ref(&self) -> &R {
         &self.0
     }
 }
 
 #[deny(clippy::missing_trait_methods)]
-impl<'input, R, const SIZE: usize> ByteRead<'input> for FlagByteReader<'input, R, SIZE>
+impl<'input, 'flags, R, const SIZE: usize> ByteRead<'input> for FlagByteReader<'flags, R, SIZE>
 where
     R: ByteRead<'input>,
+    'flags: 'input,
 {
     type AtByteRead = FlagByteReader<'input, R::AtByteRead, SIZE>;
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
@@ -66,7 +67,7 @@ where
         self.0.endian()
     }
 
-    fn flags<T>(&self) -> Result<&'input T>
+    fn flags<T>(&self) -> Result<&T>
     where
         T: Any,
     {
