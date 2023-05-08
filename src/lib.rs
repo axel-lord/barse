@@ -28,3 +28,8 @@ pub mod error;
 pub mod prelude {
     pub use super::{ByteRead, ByteSizeQuery, Condition, FromByteReader, VecLenQuery};
 }
+
+#[cfg(feature = "derive")]
+pub mod attribute {
+    pub use parse_derive::{condition, size_query};
+}
