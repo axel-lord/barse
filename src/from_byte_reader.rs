@@ -1,6 +1,16 @@
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{Data, DeriveInput};
+use quote::{format_ident, quote, ToTokens};
+use syn::{Data, DeriveInput, Lifetime};
+
+pub fn mangle(ident: &Ident) -> Ident {
+    format_ident!("__parse_derive_{ident}")
+}
+
+fn field_init(reader: &Ident) -> TokenStream {
+    quote! {
+        ::parse_common::FromByteReader::from_byte_reader(&mut #reader)?
+    }
+}
 
 pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
     let name = &ast.ident;
@@ -9,16 +19,19 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
         panic!("FromByteReader can only be derived for structs");
     };
 
-    let reader = Ident::new("__reader__", Span::call_site());
+    let reader = mangle(&Ident::new("reader", Span::call_site()));
+    let input = {
+        let ident = mangle(&Ident::new("input", Span::call_site()));
+        Lifetime {
+            apostrophe: Span::call_site(),
+            ident,
+        }
+    };
 
     let body: TokenStream = match data_struct.fields {
         syn::Fields::Named(ref fields) => {
-            let field_init = fields.named.iter().map(|field| {
-                let ty = &field.ty;
-                quote! {
-                    <#ty as ::parse_common::FromByteReader>::from_byte_reader(&mut #reader)?
-                }
-            });
+            let field_init =
+                std::iter::from_fn(|| Some(field_init(&reader))).take(fields.named.len());
 
             let field_names = fields
                 .named
@@ -30,12 +43,8 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
             }
         }
         syn::Fields::Unnamed(ref fields) => {
-            let field_init = fields.unnamed.iter().map(|field| {
-                let ty = &field.ty;
-                quote! {
-                    <#ty as ::parse_common::FromByteReader>::from_byte_reader(&mut #reader)?
-                }
-            });
+            let field_init =
+                std::iter::from_fn(|| Some(field_init(&reader))).take(fields.unnamed.len());
 
             quote! {
                 Ok(Self(#(#field_init),*))
@@ -44,33 +53,28 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
         syn::Fields::Unit => quote! {Ok(Self)},
     };
 
-    let stripped_generics = ast.generics.lt_token.is_some().then(|| {
-        let stripped_generics = ast.generics.params.iter().map(|param| match param {
-            syn::GenericParam::Lifetime(lt) => lt.lifetime.to_token_stream(),
-            syn::GenericParam::Type(ty) => ty.ident.to_token_stream(),
-            syn::GenericParam::Const(co) => co.ident.to_token_stream(),
-        });
+    let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-        quote! {
-            <#(#stripped_generics),*>
-        }
-    });
-
-    let generics = ast
-        .generics
-        .lt_token
-        .is_some()
-        .then(|| ast.generics.params.iter().map(|param| quote! {#param}))
-        .into_iter()
-        .flatten();
-
-    let where_clause = ast.generics.where_clause.as_ref();
+    let lifetimes = ast.generics.lifetimes().collect::<Vec<_>>();
+    let impl_generics = std::iter::once(if lifetimes.is_empty() {
+        quote!(#input)
+    } else {
+        quote!(#input: #(#lifetimes),*)
+    })
+    .chain(
+        ast.generics
+            .params
+            .clone()
+            .into_iter()
+            .map(|p| p.to_token_stream()),
+    );
 
     quote! {
-        impl <'__input #(,#generics)*> FromByteReader<'__input> for #name #stripped_generics #where_clause {
+        #[automatically_derived]
+        impl <#(#impl_generics),*> FromByteReader<#input> for #name #ty_generics #where_clause {
             fn from_byte_reader<R>(mut #reader: R) -> ::parse_common::Result<Self>
             where
-                R: ::parse_common::ByteRead<'__input>,
+                R: ::parse_common::ByteRead<#input>,
             {
                 #body
             }
