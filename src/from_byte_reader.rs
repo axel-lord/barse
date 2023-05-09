@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{format_ident, quote, ToTokens};
-use syn::{Data, DeriveInput, Lifetime};
+use quote::{format_ident, quote, quote_spanned, ToTokens};
+use syn::{spanned::Spanned, Data, DeriveInput, Lifetime};
 
 pub fn mangle(ident: &Ident) -> Ident {
     format_ident!("__parse_derive_{ident}")
@@ -12,11 +12,14 @@ fn field_init(reader: &Ident) -> TokenStream {
     }
 }
 
-pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
+pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
     let name = &ast.ident;
 
     let Data::Struct(data_struct) = &ast.data else {
-        panic!("FromByteReader can only be derived for structs");
+        let span = ast.span();
+        return Err(quote_spanned! {
+            span=> compile_error!("FromByteReader can only be derived for structs")
+        });
     };
 
     let reader = mangle(&Ident::new("reader", Span::call_site()));
@@ -36,7 +39,13 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
             let field_names = fields
                 .named
                 .iter()
-                .map(|field| field.ident.as_ref().unwrap());
+                .map(|field| {
+                    field.ident.as_ref().ok_or_else(|| {
+                        let span = field.span();
+                        quote_spanned!(span=> compile_error!("unnamed field in non-tuple struct"))
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
 
             quote! {
                 Ok(Self{#(#field_names: #field_init),*} )
@@ -69,7 +78,7 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
             .map(|p| p.to_token_stream()),
     );
 
-    quote! {
+    Ok(quote! {
         #[automatically_derived]
         impl <#(#impl_generics),*> FromByteReader<#input> for #name #ty_generics #where_clause {
             fn from_byte_reader<R>(mut #reader: R) -> ::barse::Result<Self>
@@ -79,5 +88,5 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
                 #body
             }
         }
-    }
+    })
 }
