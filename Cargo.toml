@@ -2,16 +2,19 @@
 name = "barse"
 version = "0.1.0"
 edition = "2021"
-license = "MIT or Apache-2.0"
+license = "MIT OR Apache-2.0"
 authors = ["Axel Lord"]
 repository = "https://github.com/axel-lord/barse"
 categories = ["parsing"]
 keywords = ["binary"]
+homepage = "https://github.com/axel-lord/barse"
+readme = "./README.md"
+description = "Binary parsing library."
 
 [features]
 derive = ["dep:barse-derive"]
 
 [dependencies]
 bytesize = "1.2.0"
-barse-derive = { git = "https://github.com/axel-lord/barse-derive", optional = true }
+barse-derive = { version = "0.1.0", optional = true }
 thiserror = "1.0.40"
