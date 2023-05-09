@@ -1,9 +1,12 @@
 [package]
-name = "parse-common"
+name = "barse"
 version = "0.1.0"
 edition = "2021"
 license = "MIT or Apache-2.0"
 authors = ["Axel Lord"]
+repository = "https://github.com/axel-lord/barse"
+categories = ["parsing"]
+keywords = ["binary"]
 
 [features]
 derive = ["dep:barse-derive"]
