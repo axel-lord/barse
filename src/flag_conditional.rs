@@ -2,14 +2,16 @@ use std::marker::PhantomData;
 
 use crate::{ByteRead, FromByteReader, Result};
 
-// Condition for [FlagConditional].
+/// Condition for [`FlagConditional`].
 pub trait Condition {
+    /// What type of flag to parse to use this condition.
     type Flag;
 
+    /// Verify the condition using given flag.
     fn verify(flag: &Self::Flag) -> bool;
 }
 
-// Option wrapper that implements FromByteReader dependinf on a given condition.
+/// Option wrapper that implements [`FromByteReader`] depending on a given condition.
 #[derive(Clone, Copy, Debug)]
 pub struct FlagConditional<T, C>(Option<T>, PhantomData<C>);
 
@@ -25,11 +27,9 @@ where
         let flag = reader.flags::<C::Flag>()?;
 
         Ok(Self(
-            if C::verify(flag) {
-                Some(T::from_byte_reader(reader)?)
-            } else {
-                None
-            },
+            C::verify(flag)
+                .then(move || T::from_byte_reader(reader))
+                .transpose()?,
             PhantomData::default(),
         ))
     }

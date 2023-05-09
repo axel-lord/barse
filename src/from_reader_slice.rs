@@ -4,17 +4,20 @@ use bytesize::ByteSize;
 
 use crate::{error::Error, ByteRead, FromByteReader};
 
+/// Trait to query the size in bytes of something.
 pub trait ByteSizeQuery {
+    /// Type of input to use for query.
     type Flag;
+    /// Query the input returning a size.
     fn size(flag: &Self::Flag) -> usize;
 }
 
-#[derive(Clone, PartialEq, Eq)]
-pub struct FromReaderSlice<'input, T, Q>(Cow<'input, [u8]>, PhantomData<(T, Q)>);
+/// An array of bytes with a queried length.
+#[derive(PartialEq, Eq)]
+pub struct FromReaderSlice<'input, Q>(Cow<'input, [u8]>, PhantomData<Q>);
 
-impl<'input, T, Q> FromByteReader<'input> for FromReaderSlice<'input, T, Q>
+impl<'input, Q> FromByteReader<'input> for FromReaderSlice<'input, Q>
 where
-    T: FromByteReader<'input>,
     Q: ByteSizeQuery + 'static,
 {
     fn from_byte_reader<R>(mut reader: R) -> Result<Self, Error>
@@ -30,17 +33,19 @@ where
     }
 }
 
-impl<'input, T, Q> FromReaderSlice<'input, T, Q> {
-    pub fn bytes(&'input self) -> &'input [u8] {
-        self.0.as_ref()
-    }
-
-    pub fn to_owned(self) -> FromReaderSlice<'static, T, Q> {
-        FromReaderSlice::<'static, T, Q>(Cow::Owned(self.0.into()), PhantomData::default())
+impl<Q> AsRef<[u8]> for FromReaderSlice<'_, Q> {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 
-impl<T, Q> Debug for FromReaderSlice<'_, T, Q> {
+impl<Q> From<FromReaderSlice<'_, Q>> for Vec<u8> {
+    fn from(value: FromReaderSlice<'_, Q>) -> Self {
+        value.0.into()
+    }
+}
+
+impl<Q> Debug for FromReaderSlice<'_, Q> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "FromReaderSlice({})", ByteSize::b(self.0.len() as u64))
     }

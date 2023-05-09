@@ -2,7 +2,12 @@ use std::marker::PhantomData;
 
 use crate::{ByteRead, Endian, Padding, Result};
 
+/// Trait for types that can be parsed from a [`ByteRead`].
 pub trait FromByteReader<'input>: Sized {
+    /// Read the Self from a [`ByteRead`].
+    ///
+    /// # Errors
+    /// If the implementor needs to.
     fn from_byte_reader<R>(reader: R) -> Result<Self>
     where
         R: ByteRead<'input>;

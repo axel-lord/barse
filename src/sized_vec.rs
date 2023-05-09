@@ -2,11 +2,16 @@ use std::marker::PhantomData;
 
 use crate::{ByteRead, FromByteReader, Result};
 
+/// Trait used to query the length of a vector.
 pub trait VecLenQuery {
+    /// Type to query on.
     type Flag;
+
+    /// Length of items that should be in vector.
     fn len(flag: &Self::Flag) -> usize;
 }
 
+/// A vec with it's length queried from a reader.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FromReaderVec<T, Q>(Vec<T>, PhantomData<Q>);
 
@@ -26,5 +31,11 @@ where
             .collect::<Result<Vec<_>>>()?;
 
         Ok(Self(items, PhantomData::default()))
+    }
+}
+
+impl<T, Q> From<FromReaderVec<T, Q>> for Vec<T> {
+    fn from(value: FromReaderVec<T, Q>) -> Self {
+        value.0
     }
 }
