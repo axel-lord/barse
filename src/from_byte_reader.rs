@@ -8,7 +8,7 @@ pub fn mangle(ident: &Ident) -> Ident {
 
 fn field_init(reader: &Ident) -> TokenStream {
     quote! {
-        ::parse_common::FromByteReader::from_byte_reader(&mut #reader)?
+        ::barse::FromByteReader::from_byte_reader(&mut #reader)?
     }
 }
 
@@ -72,9 +72,9 @@ pub fn impl_from_byte_reader(ast: &DeriveInput) -> TokenStream {
     quote! {
         #[automatically_derived]
         impl <#(#impl_generics),*> FromByteReader<#input> for #name #ty_generics #where_clause {
-            fn from_byte_reader<R>(mut #reader: R) -> ::parse_common::Result<Self>
+            fn from_byte_reader<R>(mut #reader: R) -> ::barse::Result<Self>
             where
-                R: ::parse_common::ByteRead<#input>,
+                R: ::barse::ByteRead<#input>,
             {
                 #body
             }
