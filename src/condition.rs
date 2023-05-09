@@ -8,7 +8,7 @@ pub fn generate_impl(name: &Ident, body: &ItemFn) -> TokenStream {
     quote! {
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
         pub struct #name;
-        impl ::parse_common::Condition for #name {
+        impl ::barse::Condition for #name {
             type Flag = #ty;
             fn verify(flag: &Self::Flag) -> bool {
                 #fn_name(flag)

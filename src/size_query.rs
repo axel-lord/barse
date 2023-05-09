@@ -8,7 +8,7 @@ pub fn generate_impl(name: &Ident, body: &ItemFn) -> TokenStream {
     quote! {
         #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
         pub struct #name;
-        impl ::parse_common::ByteSizeQuery for #name {
+        impl ::barse::ByteSizeQuery for #name {
             type Flag = #ty;
             fn size(flag: &Self::Flag) -> usize {
                 #fn_name(flag)
