@@ -5,11 +5,12 @@ use std::{
 
 use crate::{ByteRead, Endian, Result};
 
-/// ByteRead wrapper using given endian.
+/// [`ByteRead`] wrapper using given endian.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EndianByteReader<'input, R>(R, Endian, PhantomData<&'input ()>);
 
 impl<'input, R> EndianByteReader<'input, R> {
+    /// Construct a new [`EndianByteReader`] wrapping given reader and using passed endian.
     pub fn new(reader: R, endian: Endian) -> Self
     where
         R: ByteRead<'input>,
@@ -17,10 +18,12 @@ impl<'input, R> EndianByteReader<'input, R> {
         Self(reader, endian, PhantomData::default())
     }
 
+    /// Set the endian in use by this reader.
     pub fn set_endian(&mut self, endian: Endian) {
         self.1 = endian;
     }
 
+    /// Consume self returning the wrapped value.
     pub fn into_inner(self) -> R {
         self.0
     }

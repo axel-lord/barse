@@ -5,10 +5,12 @@ use std::{
 
 use crate::{error::Error, ByteRead, Endian, Result};
 
-/// ByteRead wrapper that can give a set of flags.
+/// [`ByteRead`] wrapper that can give a set of flags.
+#[derive(Debug, Clone, Copy)]
 pub struct FlagByteReader<'flags, R, const SIZE: usize>(R, [(TypeId, &'flags dyn Any); SIZE]);
 
 impl<'flags, R, const SIZE: usize> FlagByteReader<'flags, R, SIZE> {
+    /// Wrap a [`ByteRead`] yo use the given flags and fall back on it's own if any.
     pub fn new(reader: R, flags: [&'flags dyn Any; SIZE]) -> Self
     where
         R: ByteRead<'flags>,
@@ -16,10 +18,12 @@ impl<'flags, R, const SIZE: usize> FlagByteReader<'flags, R, SIZE> {
         Self(reader, flags.map(|flag| (flag.type_id(), flag)))
     }
 
+    /// All flags set on this [`FlagByteReader`].
     pub fn all_flags(&self) -> [&'flags dyn Any; SIZE] {
         self.1.map(|flag| flag.1)
     }
 
+    /// Consume self and return the wrapped [`ByteRead`].
     pub fn into_inner(self) -> R {
         self.0
     }
@@ -74,7 +78,9 @@ where
         let type_id = TypeId::of::<T>();
         for (id, val) in &self.1 {
             if type_id == *id {
-                return val.downcast_ref::<T>().ok_or(Error::flag_not_found::<T>());
+                return val
+                    .downcast_ref::<T>()
+                    .ok_or_else(Error::flag_not_found::<T>);
             }
         }
 
