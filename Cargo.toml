@@ -6,7 +6,7 @@ license = "MIT or Apache-2.0"
 authors = ["Axel Lord"]
 
 [features]
-derive = ["dep:parse-derive"]
+derive = ["dep:barse-derive"]
 
 [dependencies]
 bytesize = "1.2.0"
