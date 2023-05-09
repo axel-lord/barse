@@ -7,6 +7,7 @@ authors = ["Axel Lord"]
 repository = "https://github.com/axel-lord/barse-derive"
 homepage = "https://github.com/axel-lord/barse"
 readme = "./README.md"
+description = "Procedural macros for barse."
 
 [lib]
 proc-macro = true
