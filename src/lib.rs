@@ -11,7 +11,7 @@ pub use sized_vec::{FromReaderVec, VecLenQuery};
 pub type Result<T> = std::result::Result<T, error::Error>;
 
 #[cfg(feature = "derive")]
-pub use parse_derive::FromByteReader;
+pub use barse_derive::FromByteReader;
 
 mod byte_read;
 mod endian;
@@ -31,5 +31,5 @@ pub mod prelude {
 
 #[cfg(feature = "derive")]
 pub mod attribute {
-    pub use parse_derive::{condition, size_query};
+    pub use barse_derive::{condition, size_query};
 }
