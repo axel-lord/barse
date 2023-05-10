@@ -68,18 +68,18 @@ fn simplify_result<T>(res: Result<T, T>) -> T {
 }
 
 fn dyn_mangle(ident: &Ident) -> Ident {
-    format_ident!("__dyn_barse_derive_{ident}")
+    format_ident!("__dyn_barse_derive_i{ident}")
 }
 
 fn dyn_mangle_display<D>(disp: D) -> Ident
 where
     D: fmt::Display,
 {
-    format_ident!("__dyn_disp_barse_derive_{disp}")
+    format_ident!("__dyn_disp_barse_derive_i{disp}")
 }
 
 fn static_mangle(ident: &str) -> Ident {
-    format_ident!("__static_barse_derive_{ident}")
+    format_ident!("__static_barse_derive_i{ident}")
 }
 
 /// Derive a `FromByteReader` implementation.
