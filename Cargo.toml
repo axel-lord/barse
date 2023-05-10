@@ -1,0 +1,3 @@
+[workspace]
+members = ["barse", "barse-derive"]
+resolver = "2"
