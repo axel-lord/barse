@@ -88,5 +88,5 @@ pub mod prelude {
 #[cfg(feature = "derive")]
 pub mod attribute {
     //! Attribute macros.
-    pub use barse_derive::{condition, size_query};
+    pub use barse_derive::{condition, len_query, size_query};
 }
