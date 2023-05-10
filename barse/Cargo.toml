@@ -16,8 +16,5 @@ derive = ["dep:barse-derive"]
 
 [dependencies]
 bytesize = "1.2.0"
-barse-derive = { version = "0.1.0", optional = true }
+barse-derive = { path = "../barse-derive", version = "0.1.0", optional = true }
 thiserror = "1.0.40"
-
-[patch.crates-io]
-barse-derive = { git = "https://github.com/axel-lord/barse-derive", branch = "dev" }
