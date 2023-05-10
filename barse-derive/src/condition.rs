@@ -14,6 +14,5 @@ pub fn generate_impl(name: &Ident, body: &ItemFn) -> Result<TokenStream, TokenSt
                 #fn_name(flag)
             }
         }
-
     })
 }

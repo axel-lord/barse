@@ -48,10 +48,22 @@
     missing_debug_implementations,
     missing_docs
 )]
+
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, spanned::Spanned, DeriveInput, FnArg, ItemFn, Type, TypeReference};
+
+mod condition;
+mod from_byte_reader;
+mod size_query;
+mod vec_len_query;
+
+fn simplify_result<T>(res: Result<T, T>) -> T {
+    match res {
+        Ok(t) | Err(t) => t,
+    }
+}
 
 /// Derive a `FromByteReader` implementation.
 #[proc_macro_derive(FromByteReader)]
@@ -75,12 +87,6 @@ pub fn size_query(attr: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
-fn simplify_result<T>(res: Result<T, T>) -> T {
-    match res {
-        Ok(t) | Err(t) => t,
-    }
-}
-
 /// Create a Condition implementor from a function.
 #[proc_macro_attribute]
 pub fn condition(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -88,6 +94,21 @@ pub fn condition(attr: TokenStream, item: TokenStream) -> TokenStream {
     let body = parse_macro_input!(item as ItemFn);
 
     let gen_trait = simplify_result(condition::generate_impl(&name, &body));
+
+    quote! {
+        #body
+        #gen_trait
+    }
+    .into()
+}
+
+/// Create a `VecLenQuery` implementor from a function.
+#[proc_macro_attribute]
+pub fn len_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let name = parse_macro_input!(attr as Ident);
+    let body = parse_macro_input!(item as ItemFn);
+
+    let gen_trait = simplify_result(vec_len_query::generate_impl(&name, &body));
 
     quote! {
         #body
@@ -134,7 +155,3 @@ fn fn_name_and_type(body: &ItemFn) -> Result<(&Ident, &Type), proc_macro2::Token
 
     Ok((fn_name, ty))
 }
-
-mod condition;
-mod from_byte_reader;
-mod size_query;

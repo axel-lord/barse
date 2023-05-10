@@ -1,21 +1,18 @@
-use std::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::{ByteRead, Endian, Result};
 
 /// [`ByteRead`] wrapper using given endian.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct EndianByteReader<'input, R>(R, Endian, PhantomData<&'input ()>);
+pub struct EndianByteReader<R>(R, Endian);
 
-impl<'input, R> EndianByteReader<'input, R> {
+impl<R> EndianByteReader<R> {
     /// Construct a new [`EndianByteReader`] wrapping given reader and using passed endian.
-    pub fn new(reader: R, endian: Endian) -> Self
+    pub fn new<'input>(reader: R, endian: Endian) -> Self
     where
         R: ByteRead<'input>,
     {
-        Self(reader, endian, PhantomData::default())
+        Self(reader, endian)
     }
 
     /// Set the endian in use by this reader.
@@ -29,31 +26,31 @@ impl<'input, R> EndianByteReader<'input, R> {
     }
 }
 
-impl<'input, R> Deref for EndianByteReader<'input, R> {
+impl<R> Deref for EndianByteReader<R> {
     type Target = R;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'input, R> DerefMut for EndianByteReader<'input, R> {
+impl<R> DerefMut for EndianByteReader<R> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<'input, R> AsRef<R> for EndianByteReader<'input, R> {
+impl<R> AsRef<R> for EndianByteReader<R> {
     fn as_ref(&self) -> &R {
         &self.0
     }
 }
 
 #[deny(clippy::missing_trait_methods)]
-impl<'input, R> ByteRead<'input> for EndianByteReader<'input, R>
+impl<'input, R> ByteRead<'input> for EndianByteReader<R>
 where
     R: ByteRead<'input>,
 {
-    type AtByteRead = EndianByteReader<'input, R::AtByteRead>;
+    type AtByteRead = EndianByteReader<R::AtByteRead>;
 
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
         self.0.read_ref(count)
@@ -83,10 +80,6 @@ where
     }
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
-        Ok(EndianByteReader(
-            self.0.at(location)?,
-            self.1,
-            PhantomData::default(),
-        ))
+        Ok(EndianByteReader(self.0.at(location)?, self.1))
     }
 }

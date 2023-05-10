@@ -11,9 +11,9 @@ pub struct FlagByteReader<'flags, R, const SIZE: usize>(R, [(TypeId, &'flags dyn
 
 impl<'flags, R, const SIZE: usize> FlagByteReader<'flags, R, SIZE> {
     /// Wrap a [`ByteRead`] yo use the given flags and fall back on it's own if any.
-    pub fn new(reader: R, flags: [&'flags dyn Any; SIZE]) -> Self
+    pub fn new<'input>(reader: R, flags: [&'flags dyn Any; SIZE]) -> Self
     where
-        R: ByteRead<'flags>,
+        R: ByteRead<'input>,
     {
         Self(reader, flags.map(|flag| (flag.type_id(), flag)))
     }
