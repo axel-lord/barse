@@ -5,7 +5,7 @@ use syn::{
     MetaNameValue, Token,
 };
 
-use crate::{dyn_mangle, static_mangle};
+use crate::{dyn_mangle, dyn_mangle_display, static_mangle};
 
 fn field_init(reader: &Ident) -> TokenStream {
     quote! {
@@ -128,8 +128,7 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
             let mut return_value = TokenStream::new();
 
             for (field_num, _) in fields.unnamed.iter().enumerate() {
-                let mangled_name =
-                    dyn_mangle(&Ident::new(&format!("{field_num}"), Span::call_site()));
+                let mangled_name = dyn_mangle_display(field_num);
 
                 let init = field_init(&reader);
 
