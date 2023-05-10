@@ -49,6 +49,8 @@
     missing_docs
 )]
 
+use std::fmt;
+
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{format_ident, quote, quote_spanned};
@@ -67,6 +69,13 @@ fn simplify_result<T>(res: Result<T, T>) -> T {
 
 fn dyn_mangle(ident: &Ident) -> Ident {
     format_ident!("__dyn_barse_derive_{ident}")
+}
+
+fn dyn_mangle_display<D>(disp: D) -> Ident
+where
+    D: fmt::Display,
+{
+    format_ident!("__dyn_disp_barse_derive_{disp}")
 }
 
 fn static_mangle(ident: &str) -> Ident {
