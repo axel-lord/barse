@@ -14,9 +14,9 @@ pub trait ByteSizeQuery {
 
 /// An array of bytes with a queried length.
 #[derive(PartialEq, Eq)]
-pub struct FromReaderSlice<'input, Q>(Cow<'input, [u8]>, PhantomData<Q>);
+pub struct ByteSlice<'input, Q>(Cow<'input, [u8]>, PhantomData<Q>);
 
-impl<'input, Q> FromByteReader<'input> for FromReaderSlice<'input, Q>
+impl<'input, Q> FromByteReader<'input> for ByteSlice<'input, Q>
 where
     Q: ByteSizeQuery + 'static,
 {
@@ -33,19 +33,19 @@ where
     }
 }
 
-impl<Q> AsRef<[u8]> for FromReaderSlice<'_, Q> {
+impl<Q> AsRef<[u8]> for ByteSlice<'_, Q> {
     fn as_ref(&self) -> &[u8] {
         &self.0
     }
 }
 
-impl<Q> From<FromReaderSlice<'_, Q>> for Vec<u8> {
-    fn from(value: FromReaderSlice<'_, Q>) -> Self {
+impl<Q> From<ByteSlice<'_, Q>> for Vec<u8> {
+    fn from(value: ByteSlice<'_, Q>) -> Self {
         value.0.into()
     }
 }
 
-impl<Q> Debug for FromReaderSlice<'_, Q> {
+impl<Q> Debug for ByteSlice<'_, Q> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "FromReaderSlice({})", ByteSize::b(self.0.len() as u64))
     }
