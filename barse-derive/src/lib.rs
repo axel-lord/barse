@@ -51,7 +51,7 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
-use quote::{quote, quote_spanned};
+use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, spanned::Spanned, DeriveInput, FnArg, ItemFn, Type, TypeReference};
 
 mod condition;
@@ -65,8 +65,16 @@ fn simplify_result<T>(res: Result<T, T>) -> T {
     }
 }
 
+fn dyn_mangle(ident: &Ident) -> Ident {
+    format_ident!("__dyn_barse_derive_{ident}")
+}
+
+fn static_mangle(ident: &str) -> Ident {
+    format_ident!("__static_barse_derive_{ident}")
+}
+
 /// Derive a `FromByteReader` implementation.
-#[proc_macro_derive(FromByteReader)]
+#[proc_macro_derive(FromByteReader, attributes(barse))]
 pub fn derive_from_byte_reader(item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as DeriveInput);
     simplify_result(from_byte_reader::impl_trait(&ast)).into()
