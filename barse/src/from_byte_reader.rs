@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{ByteRead, Endian, Padding, Result};
 
@@ -47,6 +47,15 @@ impl<'input> FromByteReader<'input> for Vec<u8> {
         R: ByteRead<'input>,
     {
         reader.remaining().map(Vec::from)
+    }
+}
+
+impl<'input: 'data, 'data> FromByteReader<'input> for Cow<'data, [u8]> {
+    fn from_byte_reader<R>(mut reader: R) -> Result<Self>
+    where
+        R: ByteRead<'input>,
+    {
+        reader.remaining().map(Cow::Borrowed)
     }
 }
 

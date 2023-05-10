@@ -57,7 +57,7 @@ pub use endian_byte_reader::EndianByteReader;
 pub use flag_byte_reader::FlagByteReader;
 pub use flag_conditional::{Condition, FlagConditional};
 pub use from_byte_reader::FromByteReader;
-pub use from_reader_slice::{ByteSizeQuery, FromReaderSlice};
+pub use from_reader_slice::{ByteSizeQuery, ByteSlice};
 pub use padding::Padding;
 pub use sized_vec::{FromReaderVec, VecLenQuery};
 
@@ -88,5 +88,5 @@ pub mod prelude {
 #[cfg(feature = "derive")]
 pub mod attribute {
     //! Attribute macros.
-    pub use barse_derive::{condition, len_query, size_query};
+    pub use barse_derive::{byte_size_query, condition, vec_len_query};
 }

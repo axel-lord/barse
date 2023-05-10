@@ -74,7 +74,7 @@ pub fn derive_from_byte_reader(item: TokenStream) -> TokenStream {
 
 /// Create a `ByteSizeQuery` implementor from a function.
 #[proc_macro_attribute]
-pub fn size_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn byte_size_query(attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = parse_macro_input!(attr as Ident);
     let body = parse_macro_input!(item as ItemFn);
 
@@ -104,7 +104,7 @@ pub fn condition(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Create a `VecLenQuery` implementor from a function.
 #[proc_macro_attribute]
-pub fn len_query(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn vec_len_query(attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = parse_macro_input!(attr as Ident);
     let body = parse_macro_input!(item as ItemFn);
 
