@@ -20,6 +20,8 @@ impl<'input, Q> FromByteReader<'input> for ByteSlice<'input, Q>
 where
     Q: ByteSizeQuery + 'static,
 {
+    type Err = Error;
+
     fn from_byte_reader<R>(mut reader: R) -> Result<Self, Error>
     where
         R: ByteRead<'input>,

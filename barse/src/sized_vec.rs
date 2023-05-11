@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{ByteRead, FromByteReader, Result};
+use crate::{error::Error, ByteRead, FromByteReader, Result};
 
 /// Trait used to query the length of a vector.
 pub trait VecLenQuery {
@@ -15,12 +15,15 @@ pub trait VecLenQuery {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SizedVec<T, Q>(Vec<T>, PhantomData<Q>);
 
-impl<'input, T, Q> FromByteReader<'input> for SizedVec<T, Q>
+impl<'input, T, Q, E> FromByteReader<'input> for SizedVec<T, Q>
 where
-    T: FromByteReader<'input>,
+    T: FromByteReader<'input, Err = E>,
     Q: VecLenQuery + 'static,
+    E: From<Error>,
 {
-    fn from_byte_reader<R>(mut reader: R) -> Result<Self>
+    type Err = E;
+
+    fn from_byte_reader<R>(mut reader: R) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
@@ -28,7 +31,7 @@ where
         let len = Q::len(flag);
         let items = (0..len)
             .map(|_| T::from_byte_reader(&mut reader))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>, Self::Err>>()?;
 
         Ok(Self(items, PhantomData::default()))
     }

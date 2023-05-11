@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{ByteRead, FromByteReader, Result};
+use crate::{error::Error, ByteRead, FromByteReader, Result};
 
 /// Condition for [`FlagConditional`].
 pub trait Condition {
@@ -15,12 +15,15 @@ pub trait Condition {
 #[derive(Clone, Copy, Debug)]
 pub struct FlagConditional<T, C>(Option<T>, PhantomData<C>);
 
-impl<'input, T, C> FromByteReader<'input> for FlagConditional<T, C>
+impl<'input, T, C, E> FromByteReader<'input> for FlagConditional<T, C>
 where
-    T: FromByteReader<'input>,
+    T: FromByteReader<'input, Err = E>,
     C: Condition + 'static,
+    E: From<Error>,
 {
-    fn from_byte_reader<R>(reader: R) -> Result<Self>
+    type Err = E;
+
+    fn from_byte_reader<R>(reader: R) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
