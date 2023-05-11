@@ -59,7 +59,7 @@ pub use flag_conditional::{Condition, FlagConditional};
 pub use from_byte_reader::FromByteReader;
 pub use from_reader_slice::{ByteSizeQuery, ByteSlice};
 pub use padding::Padding;
-pub use sized_vec::{FromReaderVec, VecLenQuery};
+pub use sized_vec::{SizedVec, VecLenQuery};
 
 /// Result type in use by crate.
 pub type Result<T, E = error::Error> = std::result::Result<T, E>;
