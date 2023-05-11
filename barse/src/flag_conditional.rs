@@ -34,3 +34,9 @@ where
         ))
     }
 }
+
+impl<T, C> From<FlagConditional<T, C>> for Option<T> {
+    fn from(val: FlagConditional<T, C>) -> Self {
+        val.0
+    }
+}

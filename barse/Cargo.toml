@@ -19,3 +19,4 @@ derive = ["dep:barse-derive"]
 bytesize = "1.2.0"
 barse-derive = { path = "../barse-derive", version = "0.1.1", optional = true }
 thiserror = "1.0.40"
+anyhow = "1.0.71"
