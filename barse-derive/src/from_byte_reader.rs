@@ -232,6 +232,7 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
     Ok(quote! {
         #[automatically_derived]
         impl <#(#impl_generics),*> FromByteReader<#input_lifetime> for #name #ty_generics #where_clause {
+            type Err = ::barse::error::Error;
             fn from_byte_reader<R>(mut #reader: R) -> ::barse::Result<Self>
             where
                 R: ::barse::ByteRead<#input_lifetime>,
