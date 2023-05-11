@@ -13,9 +13,9 @@ pub trait VecLenQuery {
 
 /// A vec with it's length queried from a reader.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FromReaderVec<T, Q>(Vec<T>, PhantomData<Q>);
+pub struct SizedVec<T, Q>(Vec<T>, PhantomData<Q>);
 
-impl<'input, T, Q> FromByteReader<'input> for FromReaderVec<T, Q>
+impl<'input, T, Q> FromByteReader<'input> for SizedVec<T, Q>
 where
     T: FromByteReader<'input>,
     Q: VecLenQuery + 'static,
@@ -34,8 +34,8 @@ where
     }
 }
 
-impl<T, Q> From<FromReaderVec<T, Q>> for Vec<T> {
-    fn from(value: FromReaderVec<T, Q>) -> Self {
+impl<T, Q> From<SizedVec<T, Q>> for Vec<T> {
+    fn from(value: SizedVec<T, Q>) -> Self {
         value.0
     }
 }

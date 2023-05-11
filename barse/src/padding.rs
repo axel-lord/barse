@@ -1,5 +1,5 @@
 /// Padding in binary data.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Padding<const SIZE: usize>;
 
 impl<const SIZE: usize> std::fmt::Debug for Padding<SIZE> {
