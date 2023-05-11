@@ -1,17 +1,16 @@
 [package]
-name = "barse-derive"
-version = "0.2.0"
+name = "barse-derive-impl"
+version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["Axel Lord"]
 repository = "https://github.com/axel-lord/barse"
 homepage = "https://github.com/axel-lord/barse"
 readme = "./README.md"
-description = "Procedural macros for barse."
-
-[lib]
-proc-macro = true
+description = "Implementation of procedural macros for barse."
 
 [dependencies]
-barse-derive-impl = { path = "../barse-derive-impl", version = "0.1.0"}
+either = "1.8.1"
 proc-macro2 = "1.0.56"
+quote = "1.0.26"
+syn = { version = "2.0.15", features = ["full"] }
