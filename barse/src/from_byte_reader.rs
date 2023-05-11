@@ -1,20 +1,23 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use crate::{ByteRead, Endian, Padding, Result};
+use crate::{error::Error, ByteRead, Endian, Padding, Result};
 
 /// Trait for types that can be parsed from a [`ByteRead`].
 pub trait FromByteReader<'input>: Sized {
+    /// Error type return when parsing bytes fails.
+    type Err;
     /// Read the Self from a [`ByteRead`].
     ///
     /// # Errors
     /// If the implementor needs to.
-    fn from_byte_reader<R>(reader: R) -> Result<Self>
+    fn from_byte_reader<R>(reader: R) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>;
 }
 
 impl<'input, const COUNT: usize> FromByteReader<'input> for [u8; COUNT] {
-    fn from_byte_reader<R>(mut reader: R) -> Result<Self>
+    type Err = Error;
+    fn from_byte_reader<R>(mut reader: R) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
@@ -23,7 +26,8 @@ impl<'input, const COUNT: usize> FromByteReader<'input> for [u8; COUNT] {
 }
 
 impl<'input, const SIZE: usize> FromByteReader<'input> for Padding<SIZE> {
-    fn from_byte_reader<R>(mut reader: R) -> Result<Self>
+    type Err = Error;
+    fn from_byte_reader<R>(mut reader: R) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
@@ -33,7 +37,8 @@ impl<'input, const SIZE: usize> FromByteReader<'input> for Padding<SIZE> {
 }
 
 impl<'input, T> FromByteReader<'input> for PhantomData<T> {
-    fn from_byte_reader<R>(_reader: R) -> Result<Self>
+    type Err = Error;
+    fn from_byte_reader<R>(_reader: R) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
@@ -42,6 +47,7 @@ impl<'input, T> FromByteReader<'input> for PhantomData<T> {
 }
 
 impl<'input> FromByteReader<'input> for Vec<u8> {
+    type Err = Error;
     fn from_byte_reader<R>(mut reader: R) -> Result<Self>
     where
         R: ByteRead<'input>,
@@ -51,6 +57,7 @@ impl<'input> FromByteReader<'input> for Vec<u8> {
 }
 
 impl<'input: 'data, 'data> FromByteReader<'input> for Cow<'data, [u8]> {
+    type Err = Error;
     fn from_byte_reader<R>(mut reader: R) -> Result<Self>
     where
         R: ByteRead<'input>,
@@ -83,6 +90,7 @@ macro_rules! from_byte_integer_reader_impl {
     ($($ty:ty: $si:expr),* $(,)?) => {
         $(
         impl<'input> FromByteReader<'input> for $ty {
+            type Err = Error;
             fn from_byte_reader<R>(mut reader: R) -> Result<Self>
             where
                 R: ByteRead<'input>,
@@ -101,13 +109,14 @@ use from_byte_integer_reader_impl;
 
 macro_rules! from_byte_reader_tuple_impl {
     ($($templs:ident),+ $(,)?) => {
-        impl<'input, $($templs),*> FromByteReader<'input> for ($($templs,)*)
+        impl<'input, SharedErr, $($templs),*> FromByteReader<'input> for ($($templs,)*)
         where
             $(
-            $templs: FromByteReader<'input>,
+            $templs: FromByteReader<'input, Err = SharedErr>,
             )*
         {
-            fn from_byte_reader<R>(mut reader: R) -> Result<Self>
+            type Err = SharedErr;
+            fn from_byte_reader<R>(mut reader: R) -> Result<Self, SharedErr>
             where
                 R: ByteRead<'input>,
             {
