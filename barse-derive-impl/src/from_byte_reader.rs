@@ -2,17 +2,19 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::{
     parse::Parser, punctuated::Punctuated, spanned::Spanned, Attribute, Data, DeriveInput, Expr,
-    ExprLit, Lifetime, MetaNameValue, Token,
+    ExprLit, Lifetime, Meta, Token,
 };
 
 use crate::{dyn_mangle, dyn_mangle_display, static_mangle};
 
 struct Ctx {
     pub attr_ident: Ident,
-    pub flag_ident: Ident,
-    pub as_ident: Ident,
-    pub try_as_ident: Ident,
-    pub reader: Ident,
+    pub flag_attr: Ident,
+    pub from_attr: Ident,
+    pub try_from_attr: Ident,
+    pub reveal_attr: Ident,
+    pub error_attr: Ident,
+    pub reader_param: Ident,
     pub input_lifetime: Lifetime,
 }
 
@@ -20,9 +22,11 @@ impl Default for Ctx {
     fn default() -> Self {
         Ctx {
             attr_ident: Ident::new("barse", Span::call_site()),
-            flag_ident: Ident::new("flag", Span::call_site()),
-            as_ident: Ident::new("as", Span::call_site()),
-            try_as_ident: Ident::new("try_as", Span::call_site()),
+            flag_attr: Ident::new("flag", Span::call_site()),
+            from_attr: Ident::new("from", Span::call_site()),
+            try_from_attr: Ident::new("try_from", Span::call_site()),
+            reveal_attr: Ident::new("reveal", Span::call_site()),
+            error_attr: Ident::new("err", Span::call_site()),
             input_lifetime: {
                 let ident = static_mangle("input");
                 Lifetime {
@@ -30,68 +34,135 @@ impl Default for Ctx {
                     ident,
                 }
             },
-            reader: static_mangle("reader"),
+            reader_param: static_mangle("reader"),
         }
     }
 }
 
+fn parse_attrs<'a>(
+    attrs: &'a [Attribute],
+    ctx: &'a Ctx,
+) -> impl 'a + Iterator<Item = Result<Meta, TokenStream>> {
+    attrs.iter().filter(|attr| attr.path().is_ident(&ctx.attr_ident)).map(|attr| Ok(match &attr.meta {
+            syn::Meta::List(list) => Punctuated::<Meta, Token![,]>::parse_terminated
+                .parse2(list.tokens.clone())
+                .map_err(syn::Error::into_compile_error)?
+                .into_iter(),
+            value => {
+                let span = value.span();
+                return Err(quote_spanned! {
+                    span=> compile_error!("barse attribute only takes the form of #[barse(name = \"value\", ..)]")
+                });
+            }
+    })).flat_map(|meta| match meta {
+        Err(err) => either::Left(std::iter::once(Err(err))),
+        Ok(it) => either::Right(it.map(Ok)),
+    })
+}
+
+fn invalid_attr_type(span: Span) -> TokenStream {
+    quote_spanned! {
+        span=> compile_error!(
+            "barse attribute lists items are either of the form 'name = \"value\"' or 'name'
+            example: #[barse(flag = \"name\", reveal)]"
+            )
+    }
+}
+
+#[derive(Default)]
+struct StructAttrs {
+    error: Option<syn::Type>,
+}
+
+fn parse_struct_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<StructAttrs, TokenStream> {
+    let mut struct_attrs = StructAttrs::default();
+    for item in parse_attrs(attrs, ctx) {
+        match item? {
+            Meta::List(item) => return Err(invalid_attr_type(item.span())),
+            Meta::Path(_) => (),
+            Meta::NameValue(item) => {
+                let Expr::Lit(ExprLit { lit: syn::Lit::Str(lit_str), .. }) = item.value
+                else {
+                    let span = item.value.span();
+                    return Err(quote_spanned!{
+                        span=> compile_error!("value should be a string literal")
+                    });
+                };
+
+                if item.path.is_ident(&ctx.error_attr) {
+                    let ty = lit_str
+                        .parse::<syn::Type>()
+                        .map_err(syn::Error::into_compile_error)?;
+                    struct_attrs.error = Some(ty);
+                }
+            }
+        }
+    }
+    Ok(struct_attrs)
+}
+
 #[derive(Default)]
 struct FieldAttrs {
-    flags: Vec<Ident>,
+    flags: Vec<syn::Expr>,
+    reveal: Option<Span>,
+    reveal_as: Vec<Ident>,
     parse_as: Option<syn::Path>,
     try_parse_as: Option<syn::Path>,
 }
 fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, TokenStream> {
     let mut field_attrs = FieldAttrs::default();
-    for attr in attrs {
-        if attr.path().is_ident(&ctx.attr_ident) {
-            continue;
-        };
+    for item in parse_attrs(attrs, ctx) {
+        match item? {
+            Meta::List(item) => return Err(invalid_attr_type(item.span())),
 
-        let values = match &attr.meta {
-            syn::Meta::Path(_) => {
-                let span = attr.span();
-                return Err(quote_spanned! {
-                    span=> compile_error!("barse attributes should be a list of names and values")
-                });
+            Meta::Path(item) => {
+                if item.is_ident(&ctx.reveal_attr) {
+                    if let Some(span_1) = field_attrs.reveal {
+                        let first = quote_spanned! {
+                            span_1=> compile_error!("bare reveal attribute used more than once")
+                        };
+                        let span_2 = item.span();
+                        let second = quote_spanned! {
+                            span_2=> compile_error!("bare reveal attribute used more than once")
+                        };
+                        return Err(quote! {
+                            #first
+                            #second
+                        });
+                    }
+                    field_attrs.reveal = Some(item.span());
+                }
             }
-            syn::Meta::List(list) => {
-                let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
-                let list = parser
-                    .parse2(list.tokens.clone())
-                    .map_err(syn::Error::into_compile_error)?;
-                let iter = list.into_iter();
-                either::Either::Left(iter)
-            }
-            syn::Meta::NameValue(value) => {
-                let iter = std::iter::once(value.clone());
-                either::Either::Right(iter)
-            }
-        };
+            Meta::NameValue(item) => {
+                let Expr::Lit(ExprLit { lit: syn::Lit::Str(lit_str), .. }) = item.value
+                else {
+                    let span = item.value.span();
+                    return Err(quote_spanned!{
+                        span=> compile_error!("value should be a string literal")
+                    });
+                };
 
-        for item in values {
-            let Expr::Lit(ExprLit { lit: syn::Lit::Str(lit_str), .. }) = item.value else {
-                let span = item.value.span();
-                return Err(quote_spanned!{
-                    span=> compile_error!("value should be a string literal")
-                });
-            };
-
-            if item.path.is_ident(&ctx.flag_ident) {
-                let ident = lit_str
-                    .parse::<syn::Ident>()
-                    .map_err(syn::Error::into_compile_error)?;
-                field_attrs.flags.push(dyn_mangle(&ident));
-            } else if item.path.is_ident(&ctx.as_ident) {
-                let path = lit_str
-                    .parse::<syn::Path>()
-                    .map_err(syn::Error::into_compile_error)?;
-                field_attrs.parse_as = Some(path);
-            } else if item.path.is_ident(&ctx.try_as_ident) {
-                let path = lit_str
-                    .parse::<syn::Path>()
-                    .map_err(syn::Error::into_compile_error)?;
-                field_attrs.try_parse_as = Some(path);
+                if item.path.is_ident(&ctx.flag_attr) {
+                    let expr = lit_str
+                        .parse::<syn::Expr>()
+                        .map_err(syn::Error::into_compile_error)?;
+                    field_attrs.flags.push(expr);
+                } else if item.path.is_ident(&ctx.from_attr) {
+                    let path = lit_str
+                        .parse::<syn::Path>()
+                        .map_err(syn::Error::into_compile_error)?;
+                    field_attrs.parse_as = Some(path);
+                } else if item.path.is_ident(&ctx.try_from_attr) {
+                    let path = lit_str
+                        .parse::<syn::Path>()
+                        .map_err(syn::Error::into_compile_error)?;
+                    field_attrs.try_parse_as = Some(path);
+                } else if item.path.is_ident(&ctx.reveal_attr) {
+                    let ident = lit_str
+                        .parse::<syn::Ident>()
+                        .map_err(syn::Error::into_compile_error)?;
+                    field_attrs.reveal_as.push(ident);
+                }
             }
         }
     }
@@ -100,13 +171,14 @@ fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, Token
 }
 
 fn variable_block(
+    name: Option<&Ident>,
     mangled_name: &Ident,
     field_attrs: &[Attribute],
     ctx: &Ctx,
 ) -> Result<TokenStream, TokenStream> {
     let field_attrs = parse_field_attrs(field_attrs, ctx)?;
 
-    let reader = &ctx.reader;
+    let reader = &ctx.reader_param;
 
     let mut block = quote! {
         let #reader = &mut #reader;
@@ -114,7 +186,7 @@ fn variable_block(
     if !field_attrs.flags.is_empty() {
         let flags = &field_attrs.flags;
         quote! {
-            let #reader = ::barse::FlagByteReader::new(#reader, [#(& #flags),*]);
+            let #reader = ::barse::FlagByteReader::new(#reader, [#(#flags as &dyn ::std::any::Any),*]);
         }
         .to_tokens(&mut block);
     }
@@ -136,9 +208,24 @@ fn variable_block(
         .to_tokens(&mut block);
     }
 
+    let reveals =
+        if let Some(span) = field_attrs.reveal {
+            let name = name.ok_or_else(|| quote_spanned!{
+                span=> compile_error!("bare reveal cannot be used on a struct without field names")
+            })?;
+            Some(name)
+        } else {
+            None
+        }
+        .into_iter()
+        .chain(&field_attrs.reveal_as);
+
     // Ad variable for this field
     Ok(quote! {
         let #mangled_name = { #block };
+        #(
+            let #reveals = & #mangled_name;
+        )*
     })
 }
 
@@ -155,6 +242,8 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
 
     let ctx = Ctx::default();
 
+    let struct_attrs = parse_struct_attrs(&ast.attrs, &ctx)?;
+
     let mut body = TokenStream::new();
     match data_struct.fields {
         syn::Fields::Named(ref fields) => {
@@ -168,7 +257,7 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
 
                 let mangled_name = dyn_mangle(name);
 
-                variable_block(&mangled_name, &field.attrs, &ctx)?.to_tokens(&mut body);
+                variable_block(Some(name), &mangled_name, &field.attrs, &ctx)?.to_tokens(&mut body);
 
                 // Add this field to return value
                 quote! {
@@ -190,7 +279,7 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
                 let mangled_name = dyn_mangle_display(field_num);
 
                 // Initialize variable
-                variable_block(&mangled_name, &field.attrs, &ctx)?.to_tokens(&mut body);
+                variable_block(None, &mangled_name, &field.attrs, &ctx)?.to_tokens(&mut body);
 
                 // Ad this field to return value
                 quote! {
@@ -228,12 +317,16 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
             .map(|p| p.to_token_stream()),
     );
 
-    let reader = &ctx.reader;
+    let reader = &ctx.reader_param;
+    let err = struct_attrs
+        .error
+        .as_ref()
+        .map_or_else(|| quote!(::barse::error::Error), syn::Type::to_token_stream);
     Ok(quote! {
         #[automatically_derived]
         impl <#(#impl_generics),*> FromByteReader<#input_lifetime> for #name #ty_generics #where_clause {
-            type Err = ::barse::error::Error;
-            fn from_byte_reader<R>(mut #reader: R) -> ::barse::Result<Self>
+            type Err = #err;
+            fn from_byte_reader<R>(mut #reader: R) -> ::barse::Result<Self, Self::Err>
             where
                 R: ::barse::ByteRead<#input_lifetime>,
             {
