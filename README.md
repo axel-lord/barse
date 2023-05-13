@@ -13,6 +13,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [ ] FromByteReaderWith parsing with additional data specified by associated type
 - [ ] Deriving FromByteReaderWith using attributes
 - [ ] Dynamic dispatch based ByteRead wrapper 
+- [ ] Remove flags
 
 ## Licensing
 This project is licensed under MIT or Apache-2.0 use whichever you fancy.
