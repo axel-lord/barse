@@ -1,7 +1,8 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::Deref};
 
 use crate::{ByteRead, Error, FromByteReader, Result};
 
+/// A type that reads all remaining bytes in a [`crate::ByteRead`][ByteRead].
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Remaining<'data>(&'data [u8]);
 
@@ -12,6 +13,19 @@ impl<'input: 'data, 'data> FromByteReader<'input> for Remaining<'data> {
         R: ByteRead<'input>,
     {
         Ok(Self(reader.remaining()?))
+    }
+}
+
+impl<'data> Deref for Remaining<'data> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'data> AsRef<[u8]> for Remaining<'data> {
+    fn as_ref(&self) -> &[u8] {
+        self.0
     }
 }
 

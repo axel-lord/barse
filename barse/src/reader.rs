@@ -1,5 +1,7 @@
 //! Implementations of [`crate::ByteRead`][ByteRead].
 
+#![allow(clippy::module_name_repetitions)]
+
 pub use const_endian_byte_reader::ConstEndianByteReader;
 pub use dynamic_byte_reader::DynamicByteReader;
 pub use endian_byte_reader::EndianByteReader;
