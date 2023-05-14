@@ -26,7 +26,7 @@ where
     where
         R: ByteRead<'input>,
     {
-        let flag = reader.flags::<Q::Flag>()?;
+        let flag = reader.flag::<Q::Flag>()?;
 
         Ok(Self(
             Cow::Borrowed(reader.read_ref(Q::size(flag))?),

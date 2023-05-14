@@ -1,9 +1,9 @@
 use std::{
-    any::{type_name, Any},
+    any::{self, type_name, Any},
     io::Cursor,
 };
 
-use crate::{error::Error, Endian, Result};
+use crate::{error::Error, DynamicByteReader, Endian, Result};
 
 /// Trait for types that read bytes.
 pub trait ByteRead<'input> {
@@ -53,11 +53,25 @@ pub trait ByteRead<'input> {
     ///
     /// # Errors
     /// If the implementing type needs to.
-    fn flags<T>(&self) -> Result<&T>
+    fn flag<T>(&self) -> Result<&T>
     where
         T: Any,
     {
-        Err(Error::flag_not_found::<T>())
+        self.get_flag(any::TypeId::of::<T>())
+            .and_then(<(dyn std::any::Any + 'static)>::downcast_ref)
+            .ok_or_else(Error::flag_not_found::<T>)
+    }
+
+    /// Get a flag as an any from the reader, read using a [`any::TypeId`].
+    fn get_flag(&self, id: any::TypeId) -> Option<&dyn any::Any>;
+
+    /// Convert self into a [`crate::DynamicByteReader`][DynamicByteReader] it still implements
+    /// [`ByteRead`] but has the same type regardless of the [`ByteRead`] that was converted, however
+    fn into_dynamic(self) -> DynamicByteReader<'input>
+    where
+        Self: Sized + 'input,
+    {
+        DynamicByteReader::from_reader(self)
     }
 }
 
@@ -77,6 +91,10 @@ impl<'input> ByteRead<'input> for NilReader {
     }
 
     fn all(&self) -> Result<&'input [u8]> {
+        unreachable!("NilReaders should never exist")
+    }
+
+    fn get_flag(&self, _id: any::TypeId) -> Option<&dyn any::Any> {
         unreachable!("NilReaders should never exist")
     }
 }
@@ -104,11 +122,11 @@ where
         (*self).remaining()
     }
 
-    fn flags<T>(&self) -> Result<&T>
+    fn flag<T>(&self) -> Result<&T>
     where
         T: Any,
     {
-        (**self).flags()
+        (**self).flag()
     }
 
     fn all(&self) -> Result<&'input [u8]> {
@@ -117,6 +135,17 @@ where
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
         (**self).at(location)
+    }
+
+    fn into_dynamic(self) -> DynamicByteReader<'input>
+    where
+        Self: Sized + 'input,
+    {
+        DynamicByteReader::borrow_reader(self)
+    }
+
+    fn get_flag(&self, id: any::TypeId) -> Option<&dyn any::Any> {
+        (**self).get_flag(id)
     }
 }
 
@@ -149,6 +178,10 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
         cursor.set_position(location.try_into()?);
 
         Ok(cursor)
+    }
+
+    fn get_flag(&self, _id: any::TypeId) -> Option<&dyn any::Any> {
+        None
     }
 
     fn remaining(&mut self) -> Result<&'input [u8]> {
@@ -200,10 +233,21 @@ where
         (**self).at(location)
     }
 
-    fn flags<T>(&self) -> Result<&T>
+    fn flag<T>(&self) -> Result<&T>
     where
         T: Any,
     {
-        (**self).flags()
+        (**self).flag()
+    }
+
+    fn get_flag(&self, id: any::TypeId) -> Option<&dyn any::Any> {
+        (**self).get_flag(id)
+    }
+
+    fn into_dynamic(self) -> DynamicByteReader<'input>
+    where
+        Self: Sized + 'input,
+    {
+        self.into()
     }
 }
