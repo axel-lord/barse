@@ -12,7 +12,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [ ] Shorthand attributes for #[barse(as = "SizedVec<T, Q>")] and #[barse(as = "FlagConditional<T, C>")]
 - [ ] FromByteReaderWith parsing with additional data specified by associated type
 - [ ] Deriving FromByteReaderWith using attributes
-- [ ] Dynamic dispatch based ByteRead wrapper 
+- [x] Dynamic dispatch based ByteRead wrapper 
 - [ ] Remove flags
 
 ## Licensing
