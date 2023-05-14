@@ -27,7 +27,7 @@ where
     where
         R: ByteRead<'input>,
     {
-        let flag = reader.flags::<C::Flag>()?;
+        let flag = reader.flag::<C::Flag>()?;
 
         Ok(Self(
             C::verify(flag)

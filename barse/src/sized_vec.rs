@@ -27,7 +27,7 @@ where
     where
         R: ByteRead<'input>,
     {
-        let flag = reader.flags::<Q::Flag>()?;
+        let flag = reader.flag::<Q::Flag>()?;
         let len = Q::len(flag);
         let items = (0..len)
             .map(|_| T::from_byte_reader(&mut reader))

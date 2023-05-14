@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{error::Error, ByteRead, Endian, Result};
+use crate::{error::Error, ByteRead, DynamicByteReader, Endian, Result};
 
 /// [`ByteRead`] wrapper that can give a set of flags.
 #[derive(Debug, Clone, Copy)]
@@ -71,7 +71,7 @@ where
         self.0.endian()
     }
 
-    fn flags<T>(&self) -> Result<&T>
+    fn flag<T>(&self) -> Result<&T>
     where
         T: Any,
     {
@@ -85,7 +85,18 @@ where
         }
 
         // In case the flag was not found the wrapped reader is queried.
-        self.0.flags::<T>()
+        self.0.flag::<T>()
+    }
+
+    fn get_flag(&self, type_id: std::any::TypeId) -> Option<&dyn std::any::Any> {
+        for (id, val) in &self.1 {
+            if type_id == *id {
+                return Some(*val);
+            }
+        }
+
+        // In case the flag was not found the wrapped reader is queried.
+        self.0.get_flag(type_id)
     }
 
     fn all(&self) -> Result<&'input [u8]> {
@@ -94,5 +105,12 @@ where
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
         Ok(FlagByteReader(self.0.at(location)?, self.1))
+    }
+
+    fn into_dynamic(self) -> DynamicByteReader<'input>
+    where
+        Self: Sized + 'input,
+    {
+        DynamicByteReader::from_reader(self)
     }
 }

@@ -1,5 +1,5 @@
 #![cfg(feature = "derive")]
-
+#![allow(dead_code)]
 use std::io::Cursor;
 
 use barse::{FromByteReader, Padding};
