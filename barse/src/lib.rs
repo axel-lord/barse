@@ -55,7 +55,7 @@ pub use endian::Endian;
 pub use error::Error;
 
 // Traits
-pub use byte_read::{ByteRead, NilReader};
+pub use byte_read::ByteRead;
 pub use from_byte_reader::FromByteReader;
 pub use from_reader::{
     flag_conditional::Condition, from_reader_slice::ByteSizeQuery, sized_vec::VecLenQuery,
