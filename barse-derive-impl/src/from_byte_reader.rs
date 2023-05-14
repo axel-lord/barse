@@ -186,7 +186,7 @@ fn variable_block(
     if !field_attrs.flags.is_empty() {
         let flags = &field_attrs.flags;
         quote! {
-            let #reader = ::barse::FlagByteReader::new(#reader, [#(#flags as &dyn ::std::any::Any),*]);
+            let #reader = ::barse::reader::FlagByteReader::new(#reader, [#(#flags as &dyn ::std::any::Any),*]);
         }
         .to_tokens(&mut block);
     }
