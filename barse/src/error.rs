@@ -10,6 +10,9 @@ pub enum Error {
     /// A flag of the specified type could not be found while parsing.
     #[error("could not find flag of type {0}")]
     FlagNotFound(&'static str),
+    /// Reader cannot read flags.
+    #[error("flags cannot be read using reader of this type {0}")]
+    FlagReadUnsupported(&'static str),
     /// Slicing of input bytes failed, possibly due to invalid indices.
     #[error("a slice was not valid")]
     SliceFailure,
