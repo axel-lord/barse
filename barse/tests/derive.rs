@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 use std::io::Cursor;
 
-use barse::{FromByteReader, Padding};
+use barse::{from_reader::Padding, FromByteReader};
 use barse_derive::condition;
 
 #[derive(Debug, FromByteReader, PartialEq, Eq)]

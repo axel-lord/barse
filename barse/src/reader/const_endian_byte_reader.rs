@@ -1,6 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{ByteRead, DynamicByteReader, Endian, Result};
+use crate::{ByteRead, Endian, Result};
+
+use super::DynamicByteReader;
 
 /// [`ByteRead`] wrapper using the given endian.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

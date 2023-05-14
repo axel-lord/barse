@@ -3,7 +3,9 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{error::Error, ByteRead, DynamicByteReader, Endian, Result};
+use crate::{error::Error, ByteRead, Endian, Result};
+
+use super::DynamicByteReader;
 
 /// [`ByteRead`] wrapper that can give a set of flags.
 #[derive(Debug, Clone, Copy)]
