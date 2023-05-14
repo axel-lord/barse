@@ -321,7 +321,7 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
     let err = struct_attrs
         .error
         .as_ref()
-        .map_or_else(|| quote!(::barse::error::Error), syn::Type::to_token_stream);
+        .map_or_else(|| quote!(::barse::Error), syn::Type::to_token_stream);
     Ok(quote! {
         #[automatically_derived]
         impl <#(#impl_generics),*> FromByteReader<#input_lifetime> for #name #ty_generics #where_clause {

@@ -50,37 +50,38 @@
     missing_docs
 )]
 
-pub use byte_read::{ByteRead, NilReader};
-pub use const_endian_byte_reader::ConstEndianByteReader;
-pub use dynamic_byte_reader::DynamicByteReader;
+// Utility
 pub use endian::Endian;
-pub use endian_byte_reader::EndianByteReader;
-pub use flag_byte_reader::FlagByteReader;
-pub use flag_conditional::{Condition, FlagConditional};
-pub use from_byte_reader::FromByteReader;
-pub use from_reader_slice::{ByteSizeQuery, ByteSlice};
-pub use padding::Padding;
-pub use sized_vec::{SizedVec, VecLenQuery};
+pub use error::Error;
 
-/// Result type in use by crate.
-pub type Result<T, E = error::Error> = std::result::Result<T, E>;
+// Traits
+pub use byte_read::ByteRead;
+pub use from_byte_reader::FromByteReader;
+pub use from_reader::{
+    flag_conditional::Condition, from_reader_slice::ByteSizeQuery, sized_vec::VecLenQuery,
+};
+
+// ByteRead
 
 #[cfg(feature = "derive")]
 pub use barse_derive::FromByteReader;
 
-mod byte_read;
-mod const_endian_byte_reader;
-mod dynamic_byte_reader;
-mod endian;
-mod endian_byte_reader;
-mod flag_byte_reader;
-mod flag_conditional;
-mod from_byte_reader;
-mod from_reader_slice;
-mod padding;
-mod sized_vec;
+/// Result type in use by crate.
+pub type Result<T, E = error::Error> = std::result::Result<T, E>;
 
-pub mod error;
+// Utility
+mod endian;
+mod error;
+
+// Traits
+mod byte_read;
+mod from_byte_reader;
+
+// FromByteReader
+pub mod from_reader;
+
+// ByteRead
+pub mod reader;
 
 pub mod prelude {
     //! Prelude module with all traits in use by crate.
