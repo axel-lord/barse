@@ -1,6 +1,6 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use crate::{error::Error, ByteRead, Endian, Padding, Result};
+use crate::{error::Error, from_reader::Padding, ByteRead, Endian, Result};
 
 /// Trait for types that can be parsed from a [`ByteRead`].
 pub trait FromByteReader<'input>: Sized {
