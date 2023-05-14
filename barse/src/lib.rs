@@ -52,6 +52,7 @@
 
 pub use byte_read::{ByteRead, NilReader};
 pub use const_endian_byte_reader::ConstEndianByteReader;
+pub use dynamic_byte_reader::DynamicByteReader;
 pub use endian::Endian;
 pub use endian_byte_reader::EndianByteReader;
 pub use flag_byte_reader::FlagByteReader;
@@ -69,6 +70,7 @@ pub use barse_derive::FromByteReader;
 
 mod byte_read;
 mod const_endian_byte_reader;
+mod dynamic_byte_reader;
 mod endian;
 mod endian_byte_reader;
 mod flag_byte_reader;

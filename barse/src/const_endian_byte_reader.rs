@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{ByteRead, Endian, Result};
+use crate::{ByteRead, DynamicByteReader, Endian, Result};
 
 /// [`ByteRead`] wrapper using the given endian.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -67,11 +67,15 @@ where
         }
     }
 
-    fn flags<T>(&self) -> Result<&T>
+    fn flag<T>(&self) -> Result<&T>
     where
         T: std::any::Any,
     {
-        self.0.flags()
+        self.0.flag()
+    }
+
+    fn get_flag(&self, id: std::any::TypeId) -> Option<&dyn std::any::Any> {
+        (**self).get_flag(id)
     }
 
     fn all(&self) -> Result<&'input [u8]> {
@@ -80,5 +84,12 @@ where
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
         Ok(ConstEndianByteReader(self.0.at(location)?))
+    }
+
+    fn into_dynamic(self) -> DynamicByteReader<'input>
+    where
+        Self: Sized + 'input,
+    {
+        DynamicByteReader::from_reader(self)
     }
 }
