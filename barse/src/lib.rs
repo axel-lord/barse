@@ -85,6 +85,9 @@ pub mod from_reader;
 // ByteRead
 pub mod reader;
 
+// trait wrapping types
+pub mod wrap;
+
 pub mod prelude {
     //! Prelude module with all traits in use by crate.
     pub use super::{ByteRead, ByteSizeQuery, Condition, FromByteReader, VecLenQuery};
