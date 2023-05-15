@@ -50,7 +50,7 @@ impl Error {
     /// [`enum@Error`] or that it is a not [`Error::Anyhow`].
     ///
     /// ```
-    /// use barse::error::Error;
+    /// use barse::Error;
     /// use anyhow::anyhow;
     ///
     /// let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure])]);
