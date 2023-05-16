@@ -14,27 +14,41 @@ struct Ctx {
     pub try_from_attr: Ident,
     pub reveal_attr: Ident,
     pub error_attr: Ident,
+    pub with_attr: Ident,
     pub reader_param: Ident,
+    pub from_byte_reader_trait: Ident,
+    pub from_byte_reader_with_trait: Ident,
+    pub from_byte_reader_method: Ident,
+    pub from_byte_reader_with_method: Ident,
     pub input_lifetime: Lifetime,
 }
 
 impl Default for Ctx {
     fn default() -> Self {
+        pub fn id(val: &str) -> Ident {
+            Ident::new(val, Span::call_site())
+        }
+
+        pub fn lt(ident: Ident) -> syn::Lifetime {
+            syn::Lifetime {
+                apostrophe: Span::call_site(),
+                ident,
+            }
+        }
         Ctx {
-            attr_ident: Ident::new("barse", Span::call_site()),
-            flag_attr: Ident::new("flag", Span::call_site()),
-            from_attr: Ident::new("from", Span::call_site()),
-            try_from_attr: Ident::new("try_from", Span::call_site()),
-            reveal_attr: Ident::new("reveal", Span::call_site()),
-            error_attr: Ident::new("err", Span::call_site()),
-            input_lifetime: {
-                let ident = static_mangle("input");
-                Lifetime {
-                    apostrophe: Span::call_site(),
-                    ident,
-                }
-            },
+            attr_ident: id("barse"),
+            flag_attr: id("flag"),
+            from_attr: id("from"),
+            try_from_attr: id("try_from"),
+            reveal_attr: id("reveal"),
+            error_attr: id("err"),
+            with_attr: id("with"),
             reader_param: static_mangle("reader"),
+            from_byte_reader_trait: id("FromByteReader"),
+            from_byte_reader_with_trait: id("FromByteReaderWith"),
+            from_byte_reader_method: id("from_byte_reader"),
+            from_byte_reader_with_method: id("from_byte_reader_with"),
+            input_lifetime: lt(static_mangle("input")),
         }
     }
 }
@@ -102,12 +116,20 @@ fn parse_struct_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<StructAttrs, Tok
 }
 
 #[derive(Default)]
+enum ParseAs {
+    #[default]
+    No,
+    Yes(syn::Path),
+    Try(syn::Path),
+}
+
+#[derive(Default)]
 struct FieldAttrs {
     flags: Vec<syn::Expr>,
     reveal: Option<Span>,
     reveal_as: Vec<Ident>,
-    parse_as: Option<syn::Path>,
-    try_parse_as: Option<syn::Path>,
+    parse_as: ParseAs,
+    with: Option<syn::Expr>,
 }
 fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, TokenStream> {
     let mut field_attrs = FieldAttrs::default();
@@ -142,27 +164,30 @@ fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, Token
                     });
                 };
 
-                if item.path.is_ident(&ctx.flag_attr) {
-                    let expr = lit_str
-                        .parse::<syn::Expr>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    field_attrs.flags.push(expr);
-                } else if item.path.is_ident(&ctx.from_attr) {
-                    let path = lit_str
-                        .parse::<syn::Path>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    field_attrs.parse_as = Some(path);
-                } else if item.path.is_ident(&ctx.try_from_attr) {
-                    let path = lit_str
-                        .parse::<syn::Path>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    field_attrs.try_parse_as = Some(path);
-                } else if item.path.is_ident(&ctx.reveal_attr) {
-                    let ident = lit_str
-                        .parse::<syn::Ident>()
-                        .map_err(syn::Error::into_compile_error)?;
+                let err_map = syn::Error::into_compile_error;
+
+                ident_map! (item.path, {
+                    &ctx.flag_attr => {
+                        let expr = lit_str.parse().map_err(err_map)?;
+                        field_attrs.flags.push(expr);
+                    },
+                    &ctx.from_attr => {
+                        let path = lit_str.parse().map_err(err_map)?;
+                        field_attrs.parse_as = ParseAs::Yes(path);
+                    },
+                    &ctx.try_from_attr => {
+                        let path = lit_str.parse().map_err(err_map)?;
+                        field_attrs.parse_as = ParseAs::Try(path);
+                    },
+                    &ctx.reveal_attr => {
+                    let ident = lit_str.parse().map_err(err_map)?;
                     field_attrs.reveal_as.push(ident);
-                }
+                    },
+                    &ctx.with_attr => {
+                        let expr = lit_str.parse().map_err(err_map)?;
+                        field_attrs.with = Some(expr);
+                    },
+                });
             }
         }
     }
@@ -183,6 +208,8 @@ fn variable_block(
     let mut block = quote! {
         let #reader = &mut #reader;
     };
+
+    // flag
     if !field_attrs.flags.is_empty() {
         let flags = &field_attrs.flags;
         quote! {
@@ -191,23 +218,44 @@ fn variable_block(
         .to_tokens(&mut block);
     }
 
-    if let Some(path) = &field_attrs.parse_as {
-        quote! {
-            <#path as ::barse::FromByteReader>::from_byte_reader(#reader)?.into()
+    // with
+    let (trait_name, method_call) = field_attrs.with.as_ref().map_or_else(
+        || {
+            let method = &ctx.from_byte_reader_method;
+            (&ctx.from_byte_reader_trait, quote! {#method(#reader)})
+        },
+        |expr| {
+            let method = &ctx.from_byte_reader_with_method;
+            (
+                &ctx.from_byte_reader_with_trait,
+                quote! {#method(#reader, #expr)},
+            )
+        },
+    );
+
+    // as || try_as
+    match &field_attrs.parse_as {
+        ParseAs::No => {
+            quote! {
+                ::barse::#trait_name::#method_call?
+            }
+            .to_tokens(&mut block);
         }
-        .to_tokens(&mut block);
-    } else if let Some(path) = &field_attrs.try_parse_as {
-        quote! {
-            <#path as ::barse::FromByteReader>::from_byte_reader(#reader)?.try_into()?
+        ParseAs::Yes(path) => {
+            quote! {
+                <#path as ::barse::#trait_name>::#method_call?.into()
+            }
+            .to_tokens(&mut block);
         }
-        .to_tokens(&mut block);
-    } else {
-        quote! {
-            ::barse::FromByteReader::from_byte_reader(#reader)?
+        ParseAs::Try(path) => {
+            quote! {
+                <#path as ::barse::#trait_name>::#method_call?.try_into()?
+            }
+            .to_tokens(&mut block);
         }
-        .to_tokens(&mut block);
     }
 
+    // reveal
     let reveals =
         if let Some(span) = field_attrs.reveal {
             let name = name.ok_or_else(|| quote_spanned!{
@@ -335,3 +383,17 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
         }
     })
 }
+
+macro_rules! ident_map {
+    ($check:expr, {$($against:expr => $on_match: expr),+ $(,)?}) => {
+        '__ident_map: {
+            $(
+            if $check.is_ident($against) {
+                $on_match;
+                break '__ident_map;
+            }
+            )*
+        }
+    };
+}
+use ident_map;
