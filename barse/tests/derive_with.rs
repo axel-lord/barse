@@ -1,14 +1,16 @@
-#![allow(dead_code)]
-
 use std::io::Cursor;
 
-use barse::{Error, FromByteReader};
+use barse::{wrap, Error, FromByteReader};
+
+fn u8_is_digit(value: u8) -> bool {
+    value.is_ascii_digit()
+}
 
 #[derive(FromByteReader)]
 struct Option4U8 {
-    #[barse(reveal)]
-    first: u8,
-    #[barse(with = "(*first as char).is_ascii_digit()")]
+    #[barse(reveal = "first")]
+    _first: u8,
+    #[barse(with = "u8_is_digit(*first)")]
     slice: Option<[u8; 4]>,
 }
 
@@ -42,9 +44,9 @@ pub fn option() {
 
 #[derive(FromByteReader)]
 struct VecU8 {
-    #[barse(from = "u8", reveal)]
-    size: usize,
-    #[barse(with = "*size")]
+    #[barse(from = "u8", reveal = "size")]
+    _size: usize,
+    #[barse(with = "wrap::Length(*size)")]
     vec: Vec<u8>,
 }
 
@@ -64,6 +66,52 @@ pub fn vec() {
 
 #[derive(FromByteReader)]
 struct VecOpt2U8 {
-    #[barse(from = "u8", reveal)]
-    size: usize,
+    #[barse(from = "u8", reveal = "size")]
+    _size: usize,
+    #[barse(with = "wrap::Length(*size)", reveal = "status")]
+    _status: Vec<u8>,
+    #[barse(with = "(wrap::Iter(status), |b: &u8| *b != b'0')")]
+    vec: Vec<Option<[u8; 2]>>,
+}
+
+#[test]
+pub fn vec_option() {
+    fn parse_seq(seq: &[u8]) -> Result<Vec<Option<[u8; 2]>>, Error> {
+        VecOpt2U8::from_byte_reader(Cursor::new(seq)).map(|v| v.vec)
+    }
+
+    assert!(parse_seq(b"").is_err());
+
+    assert_eq!(
+        parse_seq(b"\x040101abcd").unwrap(),
+        vec![
+            None,
+            Some((b"ab" as &[u8]).try_into().unwrap()),
+            None,
+            Some((b"cd" as &[u8]).try_into().unwrap())
+        ]
+    );
+}
+
+#[derive(FromByteReader)]
+struct OptVecU8 {
+    #[barse(from = "u8", reveal = "size")]
+    _size: usize,
+    #[barse(with = "(*size != 0, wrap::Length(*size))")]
+    vec: Option<Vec<u8>>,
+}
+
+#[test]
+pub fn option_vec() {
+    fn parse_seq(seq: &[u8]) -> Result<Option<Vec<u8>>, Error> {
+        OptVecU8::from_byte_reader(Cursor::new(seq)).map(|v| v.vec)
+    }
+
+    assert!(parse_seq(b"").is_err());
+
+    assert_eq!(parse_seq(b"\x00Hello").unwrap(), None);
+    assert_eq!(
+        parse_seq(b"\x05There").unwrap(),
+        Some(Vec::from(b"There" as &[u8]))
+    );
 }
