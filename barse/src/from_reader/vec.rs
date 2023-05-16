@@ -1,11 +1,16 @@
+use std::convert::identity;
+
 use crate::{wrap, ByteRead, FromByteReader, FromByteReaderWith};
 
-impl<'input, T> FromByteReaderWith<'input, usize> for Vec<T>
+impl<'input, T> FromByteReaderWith<'input, wrap::Length> for Vec<T>
 where
     T: FromByteReader<'input>,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(mut reader: R, with: usize) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R>(
+        mut reader: R,
+        wrap::Length(with): wrap::Length,
+    ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
@@ -19,13 +24,16 @@ where
     }
 }
 
-impl<'input, T, W> FromByteReaderWith<'input, (usize, W)> for Vec<T>
+impl<'input, T, W> FromByteReaderWith<'input, (wrap::Length, W)> for Vec<T>
 where
     T: FromByteReaderWith<'input, W>,
     W: Clone,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(mut reader: R, (size, with): (usize, W)) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R>(
+        mut reader: R,
+        (wrap::Length(size), with): (wrap::Length, W),
+    ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
@@ -39,19 +47,48 @@ where
     }
 }
 
-impl<'input, 'w, T, W> FromByteReaderWith<'input, &'w [W]> for Vec<T>
+impl<'input, 'slice, T, S, W, M> FromByteReaderWith<'input, (&'slice [S], M)> for Vec<T>
 where
-    T: FromByteReaderWith<'input, &'w W>,
+    T: FromByteReaderWith<'input, W>,
+    M: FnMut(&'slice S) -> W,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(mut reader: R, with: &'w [W]) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R>(
+        mut reader: R,
+        (with, mut map): (&'slice [S], M),
+    ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
         let mut vec = Vec::with_capacity(with.len());
 
         for with in with {
-            vec.push(T::from_byte_reader_with(&mut reader, with)?);
+            vec.push(T::from_byte_reader_with(&mut reader, map(with))?);
+        }
+
+        Ok(vec)
+    }
+}
+
+impl<'input, T, I, W, M> FromByteReaderWith<'input, (wrap::Iter<I>, M)> for Vec<T>
+where
+    T: FromByteReaderWith<'input, W>,
+    I: IntoIterator,
+    M: FnMut(I::Item) -> W,
+{
+    type Err = T::Err;
+
+    fn from_byte_reader_with<R>(
+        mut reader: R,
+        (wrap::Iter(with), mut map): (wrap::Iter<I>, M),
+    ) -> Result<Self, Self::Err>
+    where
+        R: ByteRead<'input>,
+    {
+        let mut vec = Vec::new();
+
+        for with in with {
+            vec.push(T::from_byte_reader_with(&mut reader, map(with))?);
         }
 
         Ok(vec)
@@ -64,46 +101,24 @@ where
     I: IntoIterator,
 {
     type Err = T::Err;
-
-    fn from_byte_reader_with<R>(mut reader: R, with: wrap::Iter<I>) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R>(reader: R, with: wrap::Iter<I>) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
-        let mut vec = Vec::new();
-
-        for with in with.into_inner() {
-            vec.push(T::from_byte_reader_with(&mut reader, with)?);
-        }
-
-        Ok(vec)
+        Vec::from_byte_reader_with(reader, (with, identity))
     }
 }
 
-impl<'input, T, F> FromByteReaderWith<'input, F> for Vec<T>
+impl<'input, 'w, T, W> FromByteReaderWith<'input, &'w [W]> for Vec<T>
 where
-    T: FromByteReader<'input>,
-    F: FnOnce() -> usize,
+    T: FromByteReaderWith<'input, &'w W>,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(reader: R, with: F) -> Result<Self, Self::Err>
-    where
-        R: ByteRead<'input>,
-    {
-        Self::from_byte_reader_with(reader, with())
-    }
-}
 
-impl<'input, T, F, W> FromByteReaderWith<'input, (F, W)> for Vec<T>
-where
-    T: FromByteReaderWith<'input, W>,
-    F: FnOnce() -> usize,
-    W: Clone,
-{
-    type Err = T::Err;
-    fn from_byte_reader_with<R>(reader: R, (size, with): (F, W)) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R>(reader: R, with: &'w [W]) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
     {
-        Self::from_byte_reader_with(reader, (size(), with))
+        Vec::from_byte_reader_with(reader, (with, identity))
     }
 }

@@ -1,6 +1,8 @@
 //! Error utilities for crate.
 
-use std::{any, array::TryFromSliceError, borrow::Cow, fmt::Debug, num::TryFromIntError};
+use std::{
+    any, array::TryFromSliceError, borrow::Cow, fmt::Debug, num::TryFromIntError, ops::Range,
+};
 
 use thiserror::Error;
 
@@ -14,8 +16,8 @@ pub enum Error {
     #[error("flags cannot be read using reader of this type {0}")]
     FlagReadUnsupported(&'static str),
     /// Slicing of input bytes failed, possibly due to invalid indices.
-    #[error("a slice was not valid")]
-    SliceFailure,
+    #[error("a slice ({0:?}) was not valid")]
+    SliceFailure(Range<usize>),
     /// A checked operation failed.
     #[error("a checked operation failed")]
     CheckedOperation,
@@ -53,9 +55,9 @@ impl Error {
     /// use barse::Error;
     /// use anyhow::anyhow;
     ///
-    /// let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure])]);
+    /// let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure(0..0)])]);
     ///
-    /// assert!(matches!(err.anyhow_flatten(), Error::SliceFailure));
+    /// assert!(matches!(err.anyhow_flatten(), Error::SliceFailure(..)));
     /// ```
     #[must_use]
     pub fn anyhow_flatten(self) -> Self {
@@ -81,8 +83,8 @@ mod tests {
 
     #[test]
     pub fn anyhow_flatten() {
-        let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure])]);
+        let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure(0..0)])]);
 
-        assert!(matches!(err.anyhow_flatten(), Error::SliceFailure));
+        assert!(matches!(err.anyhow_flatten(), Error::SliceFailure(..)));
     }
 }
