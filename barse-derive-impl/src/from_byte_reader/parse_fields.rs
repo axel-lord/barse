@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
-use syn::{spanned::Spanned, Attribute};
+use syn::spanned::Spanned;
 
 use super::Ctx;
 use crate::{dyn_mangle, dyn_mangle_display};
@@ -10,10 +10,10 @@ pub mod parse_field_attrs;
 pub fn variable_block(
     name: Option<&Ident>,
     mangled_name: &Ident,
-    field_attrs: &[Attribute],
+    field: &syn::Field,
     ctx: &Ctx,
 ) -> Result<TokenStream, TokenStream> {
-    let field_attrs = parse_field_attrs::parse_field_attrs(field_attrs, ctx)?;
+    let field_attrs = parse_field_attrs::parse_field_attrs(&field.attrs, ctx)?;
 
     let reader = &ctx.reader_param;
 
@@ -46,26 +46,25 @@ pub fn variable_block(
     );
 
     // as || try_as
-    match &field_attrs.parse_as {
-        parse_field_attrs::ParseAs::No => {
-            quote! {
-                ::barse::#trait_name::#method_call?
-            }
-            .to_tokens(&mut block);
-        }
-        parse_field_attrs::ParseAs::Yes(path) => {
-            quote! {
-                <#path as ::barse::#trait_name>::#method_call?.into()
-            }
-            .to_tokens(&mut block);
-        }
-        parse_field_attrs::ParseAs::Try(path) => {
-            quote! {
-                <#path as ::barse::#trait_name>::#method_call?.try_into()?
-            }
-            .to_tokens(&mut block);
-        }
+    let ty = field_attrs
+        .parse_as
+        .to_path()
+        .map_or_else(|| field.ty.clone(), syn::Type::Path);
+
+    quote! {
+        let #mangled_name: #ty = ::barse::#trait_name::#method_call?;
     }
+    .to_tokens(&mut block);
+
+    if let Some(conversion) = field_attrs.parse_as.conv_tokens() {
+        let field_ty = &field.ty;
+        quote! {
+            let #mangled_name: #field_ty = #mangled_name #conversion;
+        }
+        .to_tokens(&mut block);
+    };
+
+    mangled_name.to_tokens(&mut block);
 
     // reveal
     let reveals = if let Some(span) = field_attrs.reveal {
@@ -81,9 +80,11 @@ pub fn variable_block(
     .into_iter()
     .chain(&field_attrs.reveal_as);
 
+    let field_ty = &field.ty;
+
     // Ad variable for this field
     Ok(quote! {
-        let #mangled_name = { #block };
+        let #mangled_name: #field_ty = { #block };
         #(
             let #reveals = & #mangled_name;
         )*
@@ -104,7 +105,7 @@ pub fn parse_fields(data_struct: &syn::DataStruct, ctx: &Ctx) -> Result<TokenStr
 
                 let mangled_name = dyn_mangle(name);
 
-                variable_block(Some(name), &mangled_name, &field.attrs, ctx)?.to_tokens(&mut body);
+                variable_block(Some(name), &mangled_name, field, ctx)?.to_tokens(&mut body);
 
                 // Add this field to return value
                 quote! {
@@ -126,7 +127,7 @@ pub fn parse_fields(data_struct: &syn::DataStruct, ctx: &Ctx) -> Result<TokenStr
                 let mangled_name = dyn_mangle_display(field_num);
 
                 // Initialize variable
-                variable_block(None, &mangled_name, &field.attrs, ctx)?.to_tokens(&mut body);
+                variable_block(None, &mangled_name, field, ctx)?.to_tokens(&mut body);
 
                 // Ad this field to return value
                 quote! {
