@@ -17,8 +17,35 @@ pub struct FieldAttrs {
 pub enum ParseAs {
     #[default]
     No,
-    Yes(syn::Path),
-    Try(syn::Path),
+    Yes(syn::TypePath),
+    Try(syn::TypePath),
+}
+
+impl ParseAs {
+    pub fn to_path(&self) -> Option<syn::TypePath> {
+        match self {
+            Self::Yes(path) | Self::Try(path) => Some(path.clone()),
+            Self::No => None,
+        }
+    }
+
+    pub fn conv_tokens(&self) -> Option<TokenStream> {
+        Some(match self {
+            ParseAs::No => return None,
+            ParseAs::Yes(path) => {
+                let span = path.span();
+                quote_spanned! {
+                    span=> .into()
+                }
+            }
+            ParseAs::Try(path) => {
+                let span = path.span();
+                quote_spanned! {
+                    span=> .try_into()?
+                }
+            }
+        })
+    }
 }
 
 pub fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, TokenStream> {
