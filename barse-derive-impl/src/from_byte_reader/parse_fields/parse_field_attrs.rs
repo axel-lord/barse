@@ -1,8 +1,8 @@
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned};
-use syn::{spanned::Spanned, Attribute, Expr, ExprLit, Meta};
+use quote::{quote_spanned, ToTokens};
+use syn::{spanned::Spanned, Attribute, Meta, MetaNameValue};
 
-use crate::from_byte_reader::{ident_map, invalid_attr_type, parse_attrs, Ctx};
+use crate::from_byte_reader::{parse_attrs, Ctx};
 
 #[derive(Default)]
 pub struct FieldAttrs {
@@ -11,6 +11,51 @@ pub struct FieldAttrs {
     pub reveal_as: Vec<Ident>,
     pub parse_as: ParseAs,
     pub with: Option<syn::Expr>,
+}
+
+impl FieldAttrs {
+    fn parse_name_value_attr(&mut self, item: MetaNameValue, ctx: &Ctx) -> Result<(), syn::Error> {
+        let lit_str: syn::LitStr = syn::parse2(item.value.into_token_stream())?;
+
+        let ident: syn::Ident = syn::parse2(item.path.into_token_stream())?;
+
+        if ident == ctx.flag_attr {
+            let expr = lit_str.parse()?;
+            self.flags.push(expr);
+
+            return Ok(());
+        }
+
+        if ident == ctx.from_attr {
+            let path = lit_str.parse()?;
+            self.parse_as = ParseAs::Yes(path);
+
+            return Ok(());
+        }
+
+        if ident == ctx.try_from_attr {
+            let path = lit_str.parse()?;
+            self.parse_as = ParseAs::Try(path);
+
+            return Ok(());
+        }
+
+        if ident == ctx.reveal_attr {
+            let ident = lit_str.parse()?;
+            self.reveal_as.push(ident);
+
+            return Ok(());
+        }
+
+        if ident == ctx.with_attr {
+            let expr = lit_str.parse()?;
+            self.with = Some(expr);
+
+            return Ok(());
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Default)]
@@ -48,64 +93,36 @@ impl ParseAs {
     }
 }
 
-pub fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, TokenStream> {
+pub fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, syn::Error> {
     let mut field_attrs = FieldAttrs::default();
     for item in parse_attrs::parse_attrs(attrs, ctx) {
         match item? {
-            Meta::List(item) => return Err(invalid_attr_type(item.span())),
+            Meta::List(item) => {
+                return Err(syn::Error::new(
+                    item.span(),
+                    "barse attribute lists items are either of the form \
+                    'name = \"value\"' or 'name' example: #[barse(flag = \"name\", reveal)]",
+                ))
+            }
 
             Meta::Path(item) => {
                 if item.is_ident(&ctx.reveal_attr) {
                     if let Some(span_1) = field_attrs.reveal {
-                        let first = quote_spanned! {
-                            span_1=> compile_error!("bare reveal attribute used more than once")
-                        };
-                        let span_2 = item.span();
-                        let second = quote_spanned! {
-                            span_2=> compile_error!("bare reveal attribute used more than once")
-                        };
-                        return Err(quote! {
-                            #first
-                            #second
-                        });
+                        let mut err_1 =
+                            syn::Error::new(span_1, "bare reveal attribute used more than once");
+
+                        let err_2 = syn::Error::new(
+                            item.span(),
+                            "bare reveal attribute used more than once",
+                        );
+
+                        err_1.combine(err_2);
+                        return Err(err_1);
                     }
                     field_attrs.reveal = Some(item.span());
                 }
             }
-            Meta::NameValue(item) => {
-                let Expr::Lit(ExprLit { lit: syn::Lit::Str(lit_str), .. }) = item.value
-                    else {
-                        let span = item.value.span();
-                        return Err(quote_spanned!{
-                            span=> compile_error!("value should be a string literal")
-                        });
-                    };
-
-                let err_map = syn::Error::into_compile_error;
-
-                ident_map! (item.path, {
-                    &ctx.flag_attr => {
-                        let expr = lit_str.parse().map_err(err_map)?;
-                        field_attrs.flags.push(expr);
-                    },
-                    &ctx.from_attr => {
-                        let path = lit_str.parse().map_err(err_map)?;
-                        field_attrs.parse_as = ParseAs::Yes(path);
-                    },
-                    &ctx.try_from_attr => {
-                        let path = lit_str.parse().map_err(err_map)?;
-                        field_attrs.parse_as = ParseAs::Try(path);
-                    },
-                    &ctx.reveal_attr => {
-                    let ident = lit_str.parse().map_err(err_map)?;
-                    field_attrs.reveal_as.push(ident);
-                    },
-                    &ctx.with_attr => {
-                        let expr = lit_str.parse().map_err(err_map)?;
-                        field_attrs.with = Some(expr);
-                    },
-                });
-            }
+            Meta::NameValue(item) => field_attrs.parse_name_value_attr(item, ctx)?,
         }
     }
 
