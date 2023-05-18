@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{quote, ToTokens};
 use syn::{spanned::Spanned, Data, DeriveInput, Lifetime};
 
 use crate::static_mangle;
@@ -54,23 +54,11 @@ impl Default for Ctx {
     }
 }
 
-fn invalid_attr_type(span: Span) -> TokenStream {
-    quote_spanned! {
-        span=> compile_error!(
-            "barse attribute lists items are either of the form 'name = \"value\"' or 'name'
-            example: #[barse(flag = \"name\", reveal)]"
-            )
-    }
-}
-
-pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
+pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let name = &ast.ident;
 
     let Data::Struct(data_struct) = &ast.data else {
-        let span = ast.span();
-        return Err(quote_spanned! {
-            span=> compile_error!("FromByteReader can only be derived for structs")
-        });
+        return Err(syn::Error::new(ast.span(), "FromByteReader can only be derived for structs"));
     };
 
     let ctx = Ctx::default();
@@ -113,17 +101,3 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
         }
     })
 }
-
-macro_rules! ident_map {
-    ($check:expr, {$($against:expr => $on_match: expr),+ $(,)?}) => {
-        '__ident_map: {
-            $(
-            if $check.is_ident($against) {
-                $on_match;
-                break '__ident_map;
-            }
-            )*
-        }
-    };
-}
-use ident_map;

@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
 
 use super::Ctx;
@@ -12,7 +12,7 @@ pub fn variable_block(
     mangled_name: &Ident,
     field: &syn::Field,
     ctx: &Ctx,
-) -> Result<TokenStream, TokenStream> {
+) -> Result<TokenStream, syn::Error> {
     let field_attrs = parse_field_attrs::parse_field_attrs(&field.attrs, ctx)?;
 
     let reader = &ctx.reader_param;
@@ -69,9 +69,10 @@ pub fn variable_block(
     // reveal
     let reveals = if let Some(span) = field_attrs.reveal {
         let name = name.ok_or_else(|| {
-            quote_spanned! {
-                span=> compile_error!("bare reveal cannot be used on a struct without field names")
-            }
+            syn::Error::new(
+                span,
+                "bare reveal cannot be used on a struct without field names",
+            )
         })?;
         Some(name)
     } else {
@@ -91,7 +92,7 @@ pub fn variable_block(
     })
 }
 
-pub fn parse_fields(data_struct: &syn::DataStruct, ctx: &Ctx) -> Result<TokenStream, TokenStream> {
+pub fn parse_fields(data_struct: &syn::DataStruct, ctx: &Ctx) -> Result<TokenStream, syn::Error> {
     let mut body = TokenStream::new();
     match data_struct.fields {
         syn::Fields::Named(ref fields) => {
@@ -99,8 +100,7 @@ pub fn parse_fields(data_struct: &syn::DataStruct, ctx: &Ctx) -> Result<TokenStr
 
             for field in &fields.named {
                 let name = field.ident.as_ref().ok_or_else(|| {
-                    let span = field.span();
-                    quote_spanned!(span=> compile_error!("unnamed field in non-tuple struct"))
+                    syn::Error::new(field.span(), "unnamed field in non-tuple struct")
                 })?;
 
                 let mangled_name = dyn_mangle(name);
