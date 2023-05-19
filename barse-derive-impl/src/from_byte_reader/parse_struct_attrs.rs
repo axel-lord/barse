@@ -39,6 +39,13 @@ pub fn parse_struct_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<StructAttrs,
 
                 continue;
             }
+
+            if ident == &ctx.reveal_attr {
+                let pat = lit_str.parse_with(syn::Pat::parse_single)?;
+                struct_attrs.reveal = Some(pat);
+
+                continue;
+            }
         }
     }
     Ok(struct_attrs)
