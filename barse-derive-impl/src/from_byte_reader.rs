@@ -4,11 +4,14 @@ use syn::{spanned::Spanned, Data, DeriveInput, Lifetime};
 
 use crate::static_mangle;
 
+use self::struct_attrs::StructAttrs;
+
 mod parse_attrs;
 mod parse_fields;
-mod parse_struct_attrs;
+mod struct_attrs;
 
 pub struct Ctx {
+    pub mod_name: Ident,
     pub attr_ident: Ident,
     pub flag_attr: Ident,
     pub from_attr: Ident,
@@ -17,6 +20,7 @@ pub struct Ctx {
     pub error_attr: Ident,
     pub with_attr: Ident,
     pub reader_param: Ident,
+    pub byte_read_trait: Ident,
     pub from_byte_reader_trait: Ident,
     pub from_byte_reader_with_trait: Ident,
     pub from_byte_reader_method: Ident,
@@ -24,19 +28,16 @@ pub struct Ctx {
     pub input_lifetime: Lifetime,
 }
 
+struct TraitInfo<'a> {
+    trait_kind: &'a Ident,
+    fn_name: &'a Ident,
+    fn_args: Option<TokenStream>,
+}
+
 impl Default for Ctx {
     fn default() -> Self {
-        pub fn id(val: &str) -> Ident {
-            Ident::new(val, Span::call_site())
-        }
-
-        pub fn lt(ident: Ident) -> syn::Lifetime {
-            syn::Lifetime {
-                apostrophe: Span::call_site(),
-                ident,
-            }
-        }
         Ctx {
+            mod_name: id("barse"),
             attr_ident: id("barse"),
             flag_attr: id("flag"),
             from_attr: id("from"),
@@ -45,12 +46,40 @@ impl Default for Ctx {
             error_attr: id("err"),
             with_attr: id("with"),
             reader_param: static_mangle("reader"),
+            byte_read_trait: id("ByteRead"),
             from_byte_reader_trait: id("FromByteReader"),
             from_byte_reader_with_trait: id("FromByteReaderWith"),
             from_byte_reader_method: id("from_byte_reader"),
             from_byte_reader_with_method: id("from_byte_reader_with"),
             input_lifetime: lt(static_mangle("input")),
         }
+    }
+}
+
+impl<'a> TraitInfo<'a> {
+    pub fn new(with: Option<&syn::Type>, ctx: &'a Ctx) -> Self {
+        with.map_or_else(
+            || TraitInfo {
+                trait_kind: &ctx.from_byte_reader_trait,
+                fn_name: &ctx.from_byte_reader_method,
+                fn_args: None,
+            },
+            |_| TraitInfo {
+                trait_kind: &ctx.from_byte_reader_with_trait,
+                fn_name: &ctx.from_byte_reader_with_method,
+                fn_args: None,
+            },
+        )
+    }
+}
+
+pub fn id(val: &str) -> Ident {
+    Ident::new(val, Span::call_site())
+}
+pub fn lt(ident: Ident) -> syn::Lifetime {
+    syn::Lifetime {
+        apostrophe: Span::call_site(),
+        ident,
     }
 }
 
@@ -63,7 +92,7 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
 
     let ctx = Ctx::default();
 
-    let struct_attrs = parse_struct_attrs::parse_struct_attrs(&ast.attrs, &ctx)?;
+    let struct_attrs = StructAttrs::new(&ast.attrs, &ctx)?;
     let body = parse_fields::parse_fields(data_struct, &ctx)?;
 
     let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
@@ -71,7 +100,7 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let input_lifetime = &ctx.input_lifetime;
     let lifetimes = ast.generics.lifetimes().collect::<Vec<_>>();
     let impl_generics = std::iter::once(if lifetimes.is_empty() {
-        quote!(#input_lifetime)
+        input_lifetime.to_token_stream()
     } else {
         quote!(#input_lifetime: #(#lifetimes),*)
     })
@@ -83,36 +112,29 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
             .map(|p| p.to_token_stream()),
     );
 
+    let mod_name = &ctx.mod_name;
+
     let reader = &ctx.reader_param;
     let err = struct_attrs
         .error
         .as_ref()
-        .map_or_else(|| quote!(::barse::Error), syn::Type::to_token_stream);
+        .map_or_else(|| quote!(::#mod_name::Error), syn::Type::to_token_stream);
 
-    let (trait_kind, fn_name, fn_args) = struct_attrs.with.map_or_else(
-        || {
-            (
-                quote! {FromByteReader},
-                quote! {from_byte_reader},
-                TokenStream::new(),
-            )
-        },
-        |_| {
-            (
-                quote! {FromByteReaderWith},
-                quote! {from_byte_reader_with},
-                TokenStream::new(),
-            )
-        },
-    );
+    let TraitInfo {
+        trait_kind,
+        fn_name,
+        fn_args,
+    } = TraitInfo::new(struct_attrs.with.as_ref(), &ctx);
+
+    let byte_read = &ctx.byte_read_trait;
 
     Ok(quote! {
         #[automatically_derived]
-        impl <#(#impl_generics),*> #trait_kind <#input_lifetime> for #name #ty_generics #where_clause {
+        impl <#(#impl_generics),*> ::#mod_name::#trait_kind <#input_lifetime> for #name #ty_generics #where_clause {
             type Err = #err;
-            fn #fn_name <R>(mut #reader: R, #fn_args) -> ::barse::Result<Self, Self::Err>
+            fn #fn_name <R>(mut #reader: R, #fn_args) -> ::#mod_name::Result<Self, Self::Err>
             where
-                R: ::barse::ByteRead<#input_lifetime>,
+                R: ::#mod_name::#byte_read<#input_lifetime>,
             {
                 #body
             }
