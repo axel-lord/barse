@@ -88,11 +88,29 @@ pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
         .error
         .as_ref()
         .map_or_else(|| quote!(::barse::Error), syn::Type::to_token_stream);
+
+    let (trait_kind, fn_name, fn_args) = struct_attrs.with.map_or_else(
+        || {
+            (
+                quote! {FromByteReader},
+                quote! {from_byte_reader},
+                TokenStream::new(),
+            )
+        },
+        |_| {
+            (
+                quote! {FromByteReaderWith},
+                quote! {from_byte_reader_with},
+                TokenStream::new(),
+            )
+        },
+    );
+
     Ok(quote! {
         #[automatically_derived]
-        impl <#(#impl_generics),*> FromByteReader<#input_lifetime> for #name #ty_generics #where_clause {
+        impl <#(#impl_generics),*> #trait_kind <#input_lifetime> for #name #ty_generics #where_clause {
             type Err = #err;
-            fn from_byte_reader<R>(mut #reader: R) -> ::barse::Result<Self, Self::Err>
+            fn #fn_name <R>(mut #reader: R, #fn_args) -> ::barse::Result<Self, Self::Err>
             where
                 R: ::barse::ByteRead<#input_lifetime>,
             {
