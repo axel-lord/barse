@@ -9,6 +9,7 @@ pub struct StructAttrs {
     pub parse_as: ParseAs,
     pub with: Option<syn::Type>,
     pub reveal: Option<syn::Pat>,
+    pub predicates: Vec<syn::WherePredicate>,
 }
 
 impl StructAttrs {
@@ -17,36 +18,45 @@ impl StructAttrs {
         for item in parse_attrs::parse_attrs(attrs, ctx) {
             let item: syn::MetaNameValue = syn::parse2(item?.to_token_stream())?;
 
-            let lit_str: syn::LitStr = syn::parse2(item.value.to_token_stream())?;
+            let lit_str: syn::LitStr = syn::parse2(item.value.into_token_stream())?;
 
-            if let Some(ident) = item.path.get_ident() {
-                if ident == &ctx.error_attr {
-                    let ty = lit_str.parse()?;
-                    struct_attrs.error = Some(ty);
+            let Some(ident) = item.path.get_ident() else {
+                continue;
+            };
 
-                    continue;
-                }
+            if ident == &ctx.error_attr {
+                let ty = lit_str.parse()?;
+                struct_attrs.error = Some(ty);
 
-                if ident == &ctx.from_attr {
-                    let path = lit_str.parse()?;
-                    struct_attrs.parse_as = ParseAs::Yes(path);
+                continue;
+            }
 
-                    continue;
-                }
+            if ident == &ctx.from_attr {
+                let path = lit_str.parse()?;
+                struct_attrs.parse_as = ParseAs::Yes(path);
 
-                if ident == &ctx.try_from_attr {
-                    let path = lit_str.parse()?;
-                    struct_attrs.parse_as = ParseAs::Try(path);
+                continue;
+            }
 
-                    continue;
-                }
+            if ident == &ctx.try_from_attr {
+                let path = lit_str.parse()?;
+                struct_attrs.parse_as = ParseAs::Try(path);
 
-                if ident == &ctx.reveal_attr {
-                    let pat = lit_str.parse_with(syn::Pat::parse_single)?;
-                    struct_attrs.reveal = Some(pat);
+                continue;
+            }
 
-                    continue;
-                }
+            if ident == &ctx.reveal_attr {
+                let pat = lit_str.parse_with(syn::Pat::parse_single)?;
+                struct_attrs.reveal = Some(pat);
+
+                continue;
+            }
+
+            if ident == &ctx.predicate_attr {
+                let predicate = lit_str.parse()?;
+                struct_attrs.predicates.push(predicate);
+
+                continue;
             }
         }
         Ok(struct_attrs)
