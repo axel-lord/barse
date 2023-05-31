@@ -17,6 +17,7 @@ pub struct Ctx {
     pub from_attr: Ident,
     pub try_from_attr: Ident,
     pub reveal_attr: Ident,
+    pub predicate_attr: Ident,
     pub error_attr: Ident,
     pub with_attr: Ident,
     pub reader_param: Ident,
@@ -66,6 +67,7 @@ impl Default for Ctx {
             reveal_attr: id("reveal"),
             error_attr: id("err"),
             with_attr: id("with"),
+            predicate_attr: id("predicate"),
             reader_param: static_mangle("reader"),
             byte_read_trait: id("ByteRead"),
             from_byte_reader_trait: id("FromByteReader"),
@@ -95,6 +97,8 @@ pub struct TraitImpl<'ast, 'ctx> {
     pub input_lifetime_param: syn::GenericParam,
     pub body: TokenStream,
     pub err: TokenStream,
+    pub where_clause: Option<syn::WhereClause>,
+    pub reveal: Option<TokenStream>,
     pub trait_info: TraitInfo<'ast>,
 }
 
@@ -137,6 +141,23 @@ impl<'ast: 'ctx, 'ctx> TraitImpl<'ast, 'ctx> {
             syn::GenericParam::Lifetime(input_lifetime_param)
         };
 
+        let where_clause = if struct_attrs.predicates.is_empty() {
+            generics.where_clause.clone()
+        } else {
+            let mut where_clause = (*generics).clone().make_where_clause().clone();
+
+            where_clause.predicates.extend(struct_attrs.predicates);
+
+            Some(where_clause)
+        };
+
+        let reveal = struct_attrs.reveal.map(|pat| {
+            let with_param_name = &ctx.with_param_name;
+            quote! {
+                let #pat = #with_param_name;
+            }
+        });
+
         Ok(Self {
             ctx,
             name,
@@ -144,6 +165,8 @@ impl<'ast: 'ctx, 'ctx> TraitImpl<'ast, 'ctx> {
             input_lifetime_param,
             body,
             err,
+            where_clause,
+            reveal,
             trait_info,
         })
     }
@@ -158,6 +181,8 @@ impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
             body,
             input_lifetime_param,
             err,
+            where_clause,
+            reveal,
             trait_info:
                 TraitInfo {
                     trait_kind,
@@ -174,9 +199,8 @@ impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
             ..
         } = ctx;
 
+        let (_, ty_generics, _) = generics.split_for_impl();
         let impl_generics = std::iter::once(input_lifetime_param).chain(&generics.params);
-
-        let (_, ty_generics, where_clause) = generics.split_for_impl();
 
         quote! {
             #[automatically_derived]
@@ -186,6 +210,7 @@ impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
                 where
                     R: ::#mod_name::#byte_read_trait<#input_lifetime>,
                 {
+                    #reveal
                     #body
                 }
             }
