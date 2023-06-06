@@ -1,12 +1,11 @@
 use quote::ToTokens;
 use syn::Attribute;
 
-use super::{parse_attrs, parse_fields::parse_field_attrs::ParseAs, Ctx};
+use super::{parse_attrs, Ctx};
 
 #[derive(Default)]
 pub struct StructAttrs {
     pub error: Option<syn::Type>,
-    pub parse_as: ParseAs,
     pub with: Option<syn::Type>,
     pub reveal: Option<syn::Pat>,
     pub predicates: Vec<syn::WherePredicate>,
@@ -27,20 +26,6 @@ impl StructAttrs {
             if ident == &ctx.error_attr {
                 let ty = lit_str.parse()?;
                 struct_attrs.error = Some(ty);
-
-                continue;
-            }
-
-            if ident == &ctx.from_attr {
-                let path = lit_str.parse()?;
-                struct_attrs.parse_as = ParseAs::Yes(path);
-
-                continue;
-            }
-
-            if ident == &ctx.try_from_attr {
-                let path = lit_str.parse()?;
-                struct_attrs.parse_as = ParseAs::Try(path);
 
                 continue;
             }
