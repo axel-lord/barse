@@ -123,3 +123,10 @@ struct CarryOpt(#[barse(with = "cond")] Option<u8>);
 #[derive(FromByteReader)]
 #[barse(with = "String", reveal = "carry")]
 struct UseFn(#[barse(with = "wrap::Fn(|| Ok::<_, barse::Error>(carry))")] String);
+
+#[derive(FromByteReader)]
+#[barse(with = "String", reveal = "carry")]
+struct UseCarry(#[barse(with = "wrap::Value(carry)")] String);
+
+#[derive(FromByteReader)]
+struct UseDef(#[barse(with = "wrap::Default")] String);

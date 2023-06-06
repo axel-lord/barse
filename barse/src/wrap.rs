@@ -3,15 +3,23 @@
 
 /// Wrapper to allow [`FromByteReaderWith::from_byte_reader_with`][from_byte_reader_with]
 /// for vecs to take an iterator as input.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
 pub struct Iter<I: IntoIterator>(pub I);
 
 /// Wrapper to allow [`FromByteReaderWith::from_byte_reader_with`][from_byte_reader_with]
 /// for vecs to take a length as input.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
 pub struct Len(pub usize);
 
 /// Wrapper to allow a value to be specified as a callable allowing [`FromByteReaderWith`] to be
 /// implemented for all types.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
 pub struct Fn<F>(pub F);
+
+/// Wrapper to allow a value to be carried forward or set to a value in a with impl.
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
+pub struct Value<T>(pub T);
+
+/// Wrapper to allow a value to be default initialized.
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
+pub struct Default;
