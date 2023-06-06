@@ -46,7 +46,7 @@ pub fn option() {
 struct VecU8 {
     #[barse(from = "u8", reveal = "size")]
     _size: usize,
-    #[barse(with = "wrap::Length(*size)")]
+    #[barse(with = "wrap::Len(*size)")]
     vec: Vec<u8>,
 }
 
@@ -68,7 +68,7 @@ pub fn vec() {
 struct VecOpt2U8 {
     #[barse(from = "u8", reveal = "size")]
     _size: usize,
-    #[barse(with = "wrap::Length(*size)", reveal = "status")]
+    #[barse(with = "wrap::Len(*size)", reveal = "status")]
     _status: Vec<u8>,
     #[barse(with = "(wrap::Iter(status), |b: &u8| *b != b'0')")]
     vec: Vec<Option<[u8; 2]>>,
@@ -97,7 +97,7 @@ pub fn vec_option() {
 struct OptVecU8 {
     #[barse(from = "u8", reveal = "size")]
     _size: usize,
-    #[barse(with = "(*size != 0, wrap::Length(*size))")]
+    #[barse(with = "(*size != 0, wrap::Len(*size))")]
     vec: Option<Vec<u8>>,
 }
 

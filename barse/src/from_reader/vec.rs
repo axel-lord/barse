@@ -2,14 +2,14 @@ use std::convert::identity;
 
 use crate::{wrap, ByteRead, FromByteReader, FromByteReaderWith};
 
-impl<'input, T> FromByteReaderWith<'input, wrap::Length> for Vec<T>
+impl<'input, T> FromByteReaderWith<'input, wrap::Len> for Vec<T>
 where
     T: FromByteReader<'input>,
 {
     type Err = T::Err;
     fn from_byte_reader_with<R>(
         mut reader: R,
-        wrap::Length(with): wrap::Length,
+        wrap::Len(with): wrap::Len,
     ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
@@ -24,7 +24,7 @@ where
     }
 }
 
-impl<'input, T, W> FromByteReaderWith<'input, (wrap::Length, W)> for Vec<T>
+impl<'input, T, W> FromByteReaderWith<'input, (wrap::Len, W)> for Vec<T>
 where
     T: FromByteReaderWith<'input, W>,
     W: Clone,
@@ -32,7 +32,7 @@ where
     type Err = T::Err;
     fn from_byte_reader_with<R>(
         mut reader: R,
-        (wrap::Length(size), with): (wrap::Length, W),
+        (wrap::Len(size), with): (wrap::Len, W),
     ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
