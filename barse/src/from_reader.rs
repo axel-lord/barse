@@ -18,3 +18,4 @@ mod remaining;
 mod tuple;
 mod u8_array;
 mod vec;
+mod with_fn;

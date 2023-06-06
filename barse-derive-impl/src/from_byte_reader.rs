@@ -34,6 +34,7 @@ pub struct TraitInfo<'a> {
     pub trait_kind: &'a Ident,
     pub fn_name: &'a Ident,
     pub fn_args: Option<TokenStream>,
+    pub with_ty: Option<syn::Type>,
 }
 
 impl<'a> TraitInfo<'a> {
@@ -43,6 +44,7 @@ impl<'a> TraitInfo<'a> {
                 trait_kind: &ctx.from_byte_reader_trait,
                 fn_name: &ctx.from_byte_reader_method,
                 fn_args: None,
+                with_ty: None,
             },
             |with_type| {
                 let with_param_name = &ctx.with_param_name;
@@ -50,6 +52,7 @@ impl<'a> TraitInfo<'a> {
                     trait_kind: &ctx.from_byte_reader_with_trait,
                     fn_name: &ctx.from_byte_reader_with_method,
                     fn_args: Some(quote! { #with_param_name: #with_type }),
+                    with_ty: Some(with_type.clone()),
                 }
             },
         )
@@ -188,6 +191,7 @@ impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
                     trait_kind,
                     fn_name,
                     fn_args,
+                    with_ty,
                 },
         } = self;
 
@@ -204,7 +208,7 @@ impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
 
         quote! {
             #[automatically_derived]
-            impl <#(#impl_generics),*> ::#mod_name::#trait_kind <#input_lifetime> for #name #ty_generics #where_clause {
+            impl <#(#impl_generics),*> ::#mod_name::#trait_kind <#input_lifetime, #with_ty> for #name #ty_generics #where_clause {
                 type Err = #err;
                 fn #fn_name <R>(mut #reader_param: R, #fn_args) -> ::#mod_name::Result<Self, Self::Err>
                 where

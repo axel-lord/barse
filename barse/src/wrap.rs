@@ -10,3 +10,8 @@ pub struct Iter<I: IntoIterator>(pub I);
 /// for vecs to take a length as input.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
 pub struct Length(pub usize);
+
+/// Wrapper to allow a value to be specified as a callable allowing [`FromByteReaderWith`] to be
+/// implemented for all types.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Debug, Hash)]
+pub struct Fn<F>(pub F);

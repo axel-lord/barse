@@ -3,7 +3,7 @@ use syn::Attribute;
 
 use super::{parse_attrs, Ctx};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct StructAttrs {
     pub error: Option<syn::Type>,
     pub with: Option<syn::Type>,
@@ -26,6 +26,13 @@ impl StructAttrs {
             if ident == &ctx.error_attr {
                 let ty = lit_str.parse()?;
                 struct_attrs.error = Some(ty);
+
+                continue;
+            }
+
+            if ident == &ctx.with_attr {
+                let ty = lit_str.parse()?;
+                struct_attrs.with = Some(ty);
 
                 continue;
             }

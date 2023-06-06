@@ -115,3 +115,7 @@ pub fn option_vec() {
         Some(Vec::from(b"There" as &[u8]))
     );
 }
+
+#[derive(FromByteReader)]
+#[barse(with = "bool", reveal = "cond")]
+struct CarryOpt(#[barse(with = "cond")] Option<u8>);
