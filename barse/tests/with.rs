@@ -40,7 +40,7 @@ pub fn vec() {
         let mut reader = Cursor::new(seq);
         let size: usize = u8::from_byte_reader(&mut reader)?.into();
 
-        Vec::from_byte_reader_with(reader, wrap::Length(size))
+        Vec::from_byte_reader_with(reader, wrap::Len(size))
     }
 
     assert!(parse_seq(b"").is_err());
@@ -57,7 +57,7 @@ pub fn vec_option() {
         let mut reader = Cursor::new(seq);
         let size: usize = u8::from_byte_reader(&mut reader)?.into();
 
-        let state = Vec::<u8>::from_byte_reader_with(&mut reader, wrap::Length(size))?;
+        let state = Vec::<u8>::from_byte_reader_with(&mut reader, wrap::Len(size))?;
 
         Vec::from_byte_reader_with(reader, (wrap::Iter(&state), |b: &u8| *b != b'0'))
     }
@@ -82,7 +82,7 @@ pub fn option_vec() {
 
         let size: usize = u8::from_byte_reader(&mut reader)?.into();
 
-        Option::from_byte_reader_with(reader, (size != 0, wrap::Length(size)))
+        Option::from_byte_reader_with(reader, (size != 0, wrap::Len(size)))
     }
 
     assert!(parse_seq(b"").is_err());
