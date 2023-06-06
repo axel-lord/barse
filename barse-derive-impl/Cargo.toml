@@ -13,4 +13,4 @@ description = "Implementation of procedural macros for barse."
 either = "1.8.1"
 proc-macro2 = "1.0.56"
 quote = "1.0.26"
-syn = { version = "2.0.15", features = ["full"] }
+syn = { version = "2.0.15", features = ["full", "extra-traits"] }
