@@ -119,3 +119,7 @@ pub fn option_vec() {
 #[derive(FromByteReader)]
 #[barse(with = "bool", reveal = "cond")]
 struct CarryOpt(#[barse(with = "cond")] Option<u8>);
+
+#[derive(FromByteReader)]
+#[barse(with = "String", reveal = "carry")]
+struct UseFn(#[barse(with = "wrap::Fn(|| Ok::<_, barse::Error>(carry))")] String);
