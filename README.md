@@ -14,13 +14,14 @@ Proc macro crate for my binary file parsing libray barse.
 - [x] Deriving FromByteReaderWith using attributes
 - [x] Dynamic dispatch based ByteRead wrapper 
 - [x] Remove flags
-- [x] Replace Cursor impl with custom type using usize.
-- [x] Implement FromByteReaderWith for u8 slices.
-- [ ] Replace Slice error with more malleable one that can indicate reason.
-- [ ] Add assertion error.
-- [ ] Add assertions to macro for both types and fields.
-- [ ] Replace const endian reader with little big variants.
-- [ ] Add specialized way of getting a mut reference to a reader and remove the auto mut ref impl.
+- [x] Replace Cursor impl with custom type using usize
+- [x] Implement FromByteReaderWith for u8 slices
+- [ ] Replace Slice error with more malleable one that can indicate reason
+- [ ] Add assertion error
+- [ ] Add assertions to macro for both types and fields
+- [x] Replace const endian reader with little big variants
+- [ ] Add specialized way of getting a mut reference to a reader and remove the auto mut ref impl
+- [ ] Add with impls for endianess
 
 ## Licensing
 This project is licensed under MIT or Apache-2.0 use whichever you fancy.
