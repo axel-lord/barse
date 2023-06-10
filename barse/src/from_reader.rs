@@ -12,6 +12,7 @@ mod phantom_data;
 mod remaining;
 mod tuple;
 mod u8_array;
+mod u8_slice;
 mod value;
 mod vec;
 mod with_fn;
