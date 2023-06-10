@@ -43,5 +43,5 @@ pub trait ByteRead<'input> {
     ///
     /// # Errors
     /// If the implementing type needs to.
-    fn at(&self, _location: usize) -> Result<Self::AtByteRead>;
+    fn at(&self, location: usize) -> Result<Self::AtByteRead>;
 }
