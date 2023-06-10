@@ -9,11 +9,16 @@ Proc macro crate for my binary file parsing libray barse.
 
 ## Planned
 - [x] Custom Errors when deriving
-- [ ] Shorthand attributes for #[barse(as = "SizedVec<T, Q>")] and #[barse(as = "FlagConditional<T, C>")]
+- [ ] ~~Shorthand attributes for #[barse(as = "SizedVec<T, Q>")] and #[barse(as = "FlagConditional<T, C>")]~~
 - [x] FromByteReaderWith parsing with additional data specified by associated type
 - [x] Deriving FromByteReaderWith using attributes
 - [x] Dynamic dispatch based ByteRead wrapper 
-- [ ] Remove flags
+- [x] Remove flags
+- [ ] Replace Cursor impl with custom type using usize.
+- [ ] Implement FromByteReaderWith for u8 slices.
+- [ ] Replace Slice error with more malleable one that can indicate reason.
+- [ ] Add assertion error.
+- [ ] Add assertions to macro for both types and fields.
 
 ## Licensing
 This project is licensed under MIT or Apache-2.0 use whichever you fancy.

@@ -56,21 +56,3 @@ use proc_macro::TokenStream;
 pub fn derive_from_byte_reader(item: TokenStream) -> TokenStream {
     barse_derive_impl::derive_from_byte_reader(item.into()).into()
 }
-
-/// Create a `ByteSizeQuery` implementor from a function.
-#[proc_macro_attribute]
-pub fn byte_size_query(attr: TokenStream, item: TokenStream) -> TokenStream {
-    barse_derive_impl::byte_size_query(attr.into(), item.into()).into()
-}
-
-/// Create a Condition implementor from a function.
-#[proc_macro_attribute]
-pub fn condition(attr: TokenStream, item: TokenStream) -> TokenStream {
-    barse_derive_impl::condition(attr.into(), item.into()).into()
-}
-
-/// Create a `VecLenQuery` implementor from a function.
-#[proc_macro_attribute]
-pub fn vec_len_query(attr: TokenStream, item: TokenStream) -> TokenStream {
-    barse_derive_impl::vec_len_query(attr.into(), item.into()).into()
-}

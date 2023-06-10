@@ -3,7 +3,6 @@
 use std::io::Cursor;
 
 use barse::{from_reader::Padding, FromByteReader};
-use barse_derive::condition;
 
 #[derive(Debug, FromByteReader, PartialEq, Eq)]
 struct StructDerive {
@@ -68,11 +67,6 @@ pub fn parse_derived_tuple_struct() {
     let parsed = TupleStructDerive::from_byte_reader(Cursor::new(&*data)).unwrap();
 
     assert_eq!(parsed, test)
-}
-
-#[condition(IsEven)]
-fn is_even(number: &u32) -> bool {
-    *number % 2 == 0
 }
 
 #[derive(FromByteReader)]
