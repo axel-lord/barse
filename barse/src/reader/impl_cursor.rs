@@ -17,12 +17,14 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
         self.get_ref()
             .as_ref()
             .get(range.clone())
-            .ok_or(Error::SliceFailure)?;
+            .ok_or(Error::SliceFailure(range.clone()))?;
 
         // Update position performed here to avoid mutable borrow after immutable borrow.
         self.set_position(end.try_into()?);
 
-        self.get_ref().get(range).ok_or(Error::SliceFailure)
+        self.get_ref()
+            .get(range.clone())
+            .ok_or(Error::SliceFailure(range))
     }
 
     fn all(&self) -> Result<&'input [u8]> {
@@ -49,11 +51,13 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
         self.get_ref()
             .as_ref()
             .get(range.clone())
-            .ok_or(Error::SliceFailure)?;
+            .ok_or(Error::SliceFailure(range.clone()))?;
 
         // Update position performed here to avoid mutable borrow after immutable borrow.
         self.set_position(end.try_into()?);
 
-        self.get_ref().get(range).ok_or(Error::SliceFailure)
+        self.get_ref()
+            .get(range.clone())
+            .ok_or(Error::SliceFailure(range))
     }
 }

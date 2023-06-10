@@ -57,6 +57,7 @@ pub use error::Error;
 // Traits
 pub use byte_read::ByteRead;
 pub use from_byte_reader::FromByteReader;
+pub use from_byte_reader_with::FromByteReaderWith;
 pub use from_reader::{
     flag_conditional::Condition, from_reader_slice::ByteSizeQuery, sized_vec::VecLenQuery,
 };
@@ -76,12 +77,16 @@ mod error;
 // Traits
 mod byte_read;
 mod from_byte_reader;
+mod from_byte_reader_with;
 
 // FromByteReader
 pub mod from_reader;
 
 // ByteRead
 pub mod reader;
+
+// trait wrapping types
+pub mod wrap;
 
 pub mod prelude {
     //! Prelude module with all traits in use by crate.
