@@ -1,10 +1,10 @@
-use crate::{ByteRead, Result};
+use crate::ByteRead;
 
 /// Trait for types that can be parsed from a [`ByteRead`].
 pub trait FromByteReader<'input>: Sized {
-    /// Error type return when parsing bytes fails.
+    /// Error type returned when parsing bytes fails.
     type Err;
-    /// Read the Self from a [`ByteRead`].
+    /// Read Self from a [`ByteRead`].
     ///
     /// # Errors
     /// If the implementor needs to.

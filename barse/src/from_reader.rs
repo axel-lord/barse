@@ -11,8 +11,13 @@ pub(super) mod from_reader_slice;
 pub(super) mod padding;
 pub(super) mod sized_vec;
 
+mod def;
 mod integer;
+mod option;
 mod phantom_data;
 mod remaining;
 mod tuple;
 mod u8_array;
+mod value;
+mod vec;
+mod with_fn;

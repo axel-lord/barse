@@ -64,7 +64,7 @@ mod vec_len_query;
 #[must_use]
 pub fn derive_from_byte_reader(item: TokenStream) -> TokenStream {
     let ast = parse_as!(item as syn::DeriveInput);
-    simplify_result(from_byte_reader::impl_trait(&ast))
+    from_byte_reader::impl_trait(&ast).unwrap_or_else(syn::Error::into_compile_error)
 }
 
 /// Create a `ByteSizeQuery` implementor from a function.

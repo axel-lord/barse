@@ -1,337 +1,229 @@
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
-use syn::{
-    parse::Parser, punctuated::Punctuated, spanned::Spanned, Attribute, Data, DeriveInput, Expr,
-    ExprLit, Lifetime, Meta, Token,
-};
+use quote::{quote, ToTokens};
+use syn::{spanned::Spanned, Data, DeriveInput, Lifetime};
 
-use crate::{dyn_mangle, dyn_mangle_display, static_mangle};
+use crate::static_mangle;
 
-struct Ctx {
+use self::struct_attrs::StructAttrs;
+
+mod parse_attrs;
+mod parse_fields;
+mod struct_attrs;
+
+pub struct Ctx {
+    pub mod_name: Ident,
     pub attr_ident: Ident,
     pub flag_attr: Ident,
     pub from_attr: Ident,
     pub try_from_attr: Ident,
     pub reveal_attr: Ident,
+    pub predicate_attr: Ident,
     pub error_attr: Ident,
+    pub with_attr: Ident,
     pub reader_param: Ident,
+    pub byte_read_trait: Ident,
+    pub from_byte_reader_trait: Ident,
+    pub from_byte_reader_with_trait: Ident,
+    pub from_byte_reader_method: Ident,
+    pub from_byte_reader_with_method: Ident,
     pub input_lifetime: Lifetime,
+    pub with_param_name: Ident,
+}
+
+pub struct TraitInfo<'a> {
+    pub trait_kind: &'a Ident,
+    pub fn_name: &'a Ident,
+    pub fn_args: Option<TokenStream>,
+    pub with_ty: Option<syn::Type>,
+}
+
+impl<'a> TraitInfo<'a> {
+    pub fn new(with: Option<&syn::Type>, ctx: &'a Ctx) -> Self {
+        with.map_or_else(
+            || TraitInfo {
+                trait_kind: &ctx.from_byte_reader_trait,
+                fn_name: &ctx.from_byte_reader_method,
+                fn_args: None,
+                with_ty: None,
+            },
+            |with_type| {
+                let with_param_name = &ctx.with_param_name;
+                TraitInfo {
+                    trait_kind: &ctx.from_byte_reader_with_trait,
+                    fn_name: &ctx.from_byte_reader_with_method,
+                    fn_args: Some(quote! { #with_param_name: #with_type }),
+                    with_ty: Some(with_type.clone()),
+                }
+            },
+        )
+    }
 }
 
 impl Default for Ctx {
     fn default() -> Self {
         Ctx {
-            attr_ident: Ident::new("barse", Span::call_site()),
-            flag_attr: Ident::new("flag", Span::call_site()),
-            from_attr: Ident::new("from", Span::call_site()),
-            try_from_attr: Ident::new("try_from", Span::call_site()),
-            reveal_attr: Ident::new("reveal", Span::call_site()),
-            error_attr: Ident::new("err", Span::call_site()),
-            input_lifetime: {
-                let ident = static_mangle("input");
-                Lifetime {
-                    apostrophe: Span::call_site(),
-                    ident,
-                }
-            },
+            mod_name: id("barse"),
+            attr_ident: id("barse"),
+            flag_attr: id("flag"),
+            from_attr: id("from"),
+            try_from_attr: id("try_from"),
+            reveal_attr: id("reveal"),
+            error_attr: id("err"),
+            with_attr: id("with"),
+            predicate_attr: id("predicate"),
             reader_param: static_mangle("reader"),
+            byte_read_trait: id("ByteRead"),
+            from_byte_reader_trait: id("FromByteReader"),
+            from_byte_reader_with_trait: id("FromByteReaderWith"),
+            from_byte_reader_method: id("from_byte_reader"),
+            from_byte_reader_with_method: id("from_byte_reader_with"),
+            input_lifetime: lt(static_mangle("input")),
+            with_param_name: static_mangle("with"),
         }
     }
 }
 
-fn parse_attrs<'a>(
-    attrs: &'a [Attribute],
-    ctx: &'a Ctx,
-) -> impl 'a + Iterator<Item = Result<Meta, TokenStream>> {
-    attrs.iter().filter(|attr| attr.path().is_ident(&ctx.attr_ident)).map(|attr| Ok(match &attr.meta {
-            syn::Meta::List(list) => Punctuated::<Meta, Token![,]>::parse_terminated
-                .parse2(list.tokens.clone())
-                .map_err(syn::Error::into_compile_error)?
-                .into_iter(),
-            value => {
-                let span = value.span();
-                return Err(quote_spanned! {
-                    span=> compile_error!("barse attribute only takes the form of #[barse(name = \"value\", ..)]")
-                });
+pub fn id(val: &str) -> Ident {
+    Ident::new(val, Span::call_site())
+}
+pub fn lt(ident: Ident) -> syn::Lifetime {
+    syn::Lifetime {
+        apostrophe: Span::call_site(),
+        ident,
+    }
+}
+
+pub struct TraitImpl<'ast, 'ctx> {
+    pub ctx: &'ctx Ctx,
+    pub name: &'ast Ident,
+    pub generics: &'ast syn::Generics,
+    pub input_lifetime_param: syn::GenericParam,
+    pub body: TokenStream,
+    pub err: TokenStream,
+    pub where_clause: Option<syn::WhereClause>,
+    pub reveal: Option<TokenStream>,
+    pub trait_info: TraitInfo<'ast>,
+}
+
+impl<'ast: 'ctx, 'ctx> TraitImpl<'ast, 'ctx> {
+    pub fn new(ast: &'ast DeriveInput, ctx: &'ast Ctx) -> Result<Self, syn::Error> {
+        let name = &ast.ident;
+
+        let Data::Struct(data_struct) = &ast.data else {
+            return Err(syn::Error::new(
+                ast.span(),
+                "FromByteReader can only be derived for structs",
+            ))
+        };
+
+        let struct_attrs = StructAttrs::new(&ast.attrs, ctx)?;
+
+        let body = parse_fields::parse_fields(data_struct, ctx)?;
+
+        let trait_info = TraitInfo::new(struct_attrs.with.as_ref(), ctx);
+
+        let generics = &ast.generics;
+
+        let mod_name = &ctx.mod_name;
+
+        let err = struct_attrs
+            .error
+            .as_ref()
+            .map_or_else(|| quote!(::#mod_name::Error), syn::Type::to_token_stream);
+
+        let input_lifetime_param = {
+            let mut input_lifetime_param = syn::LifetimeParam::new(ctx.input_lifetime.clone());
+            let mut lifetimes = ast.generics.lifetimes().peekable();
+
+            if lifetimes.peek().is_some() {
+                input_lifetime_param.colon_token = Some(syn::token::Colon::default());
+                input_lifetime_param.bounds = lifetimes
+                    .map(|lifetime| lifetime.lifetime.clone())
+                    .collect();
             }
-    })).flat_map(|meta| match meta {
-        Err(err) => either::Left(std::iter::once(Err(err))),
-        Ok(it) => either::Right(it.map(Ok)),
-    })
-}
+            syn::GenericParam::Lifetime(input_lifetime_param)
+        };
 
-fn invalid_attr_type(span: Span) -> TokenStream {
-    quote_spanned! {
-        span=> compile_error!(
-            "barse attribute lists items are either of the form 'name = \"value\"' or 'name'
-            example: #[barse(flag = \"name\", reveal)]"
-            )
-    }
-}
-
-#[derive(Default)]
-struct StructAttrs {
-    error: Option<syn::Type>,
-}
-
-fn parse_struct_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<StructAttrs, TokenStream> {
-    let mut struct_attrs = StructAttrs::default();
-    for item in parse_attrs(attrs, ctx) {
-        match item? {
-            Meta::List(item) => return Err(invalid_attr_type(item.span())),
-            Meta::Path(_) => (),
-            Meta::NameValue(item) => {
-                let Expr::Lit(ExprLit { lit: syn::Lit::Str(lit_str), .. }) = item.value
-                else {
-                    let span = item.value.span();
-                    return Err(quote_spanned!{
-                        span=> compile_error!("value should be a string literal")
-                    });
-                };
-
-                if item.path.is_ident(&ctx.error_attr) {
-                    let ty = lit_str
-                        .parse::<syn::Type>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    struct_attrs.error = Some(ty);
-                }
-            }
-        }
-    }
-    Ok(struct_attrs)
-}
-
-#[derive(Default)]
-struct FieldAttrs {
-    flags: Vec<syn::Expr>,
-    reveal: Option<Span>,
-    reveal_as: Vec<Ident>,
-    parse_as: Option<syn::Path>,
-    try_parse_as: Option<syn::Path>,
-}
-fn parse_field_attrs(attrs: &[Attribute], ctx: &Ctx) -> Result<FieldAttrs, TokenStream> {
-    let mut field_attrs = FieldAttrs::default();
-    for item in parse_attrs(attrs, ctx) {
-        match item? {
-            Meta::List(item) => return Err(invalid_attr_type(item.span())),
-
-            Meta::Path(item) => {
-                if item.is_ident(&ctx.reveal_attr) {
-                    if let Some(span_1) = field_attrs.reveal {
-                        let first = quote_spanned! {
-                            span_1=> compile_error!("bare reveal attribute used more than once")
-                        };
-                        let span_2 = item.span();
-                        let second = quote_spanned! {
-                            span_2=> compile_error!("bare reveal attribute used more than once")
-                        };
-                        return Err(quote! {
-                            #first
-                            #second
-                        });
-                    }
-                    field_attrs.reveal = Some(item.span());
-                }
-            }
-            Meta::NameValue(item) => {
-                let Expr::Lit(ExprLit { lit: syn::Lit::Str(lit_str), .. }) = item.value
-                else {
-                    let span = item.value.span();
-                    return Err(quote_spanned!{
-                        span=> compile_error!("value should be a string literal")
-                    });
-                };
-
-                if item.path.is_ident(&ctx.flag_attr) {
-                    let expr = lit_str
-                        .parse::<syn::Expr>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    field_attrs.flags.push(expr);
-                } else if item.path.is_ident(&ctx.from_attr) {
-                    let path = lit_str
-                        .parse::<syn::Path>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    field_attrs.parse_as = Some(path);
-                } else if item.path.is_ident(&ctx.try_from_attr) {
-                    let path = lit_str
-                        .parse::<syn::Path>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    field_attrs.try_parse_as = Some(path);
-                } else if item.path.is_ident(&ctx.reveal_attr) {
-                    let ident = lit_str
-                        .parse::<syn::Ident>()
-                        .map_err(syn::Error::into_compile_error)?;
-                    field_attrs.reveal_as.push(ident);
-                }
-            }
-        }
-    }
-
-    Ok(field_attrs)
-}
-
-fn variable_block(
-    name: Option<&Ident>,
-    mangled_name: &Ident,
-    field_attrs: &[Attribute],
-    ctx: &Ctx,
-) -> Result<TokenStream, TokenStream> {
-    let field_attrs = parse_field_attrs(field_attrs, ctx)?;
-
-    let reader = &ctx.reader_param;
-
-    let mut block = quote! {
-        let #reader = &mut #reader;
-    };
-    if !field_attrs.flags.is_empty() {
-        let flags = &field_attrs.flags;
-        quote! {
-            let #reader = ::barse::reader::FlagByteReader::new(#reader, [#(#flags as &dyn ::std::any::Any),*]);
-        }
-        .to_tokens(&mut block);
-    }
-
-    if let Some(path) = &field_attrs.parse_as {
-        quote! {
-            <#path as ::barse::FromByteReader>::from_byte_reader(#reader)?.into()
-        }
-        .to_tokens(&mut block);
-    } else if let Some(path) = &field_attrs.try_parse_as {
-        quote! {
-            <#path as ::barse::FromByteReader>::from_byte_reader(#reader)?.try_into()?
-        }
-        .to_tokens(&mut block);
-    } else {
-        quote! {
-            ::barse::FromByteReader::from_byte_reader(#reader)?
-        }
-        .to_tokens(&mut block);
-    }
-
-    let reveals =
-        if let Some(span) = field_attrs.reveal {
-            let name = name.ok_or_else(|| quote_spanned!{
-                span=> compile_error!("bare reveal cannot be used on a struct without field names")
-            })?;
-            Some(name)
+        let where_clause = if struct_attrs.predicates.is_empty() {
+            generics.where_clause.clone()
         } else {
-            None
-        }
-        .into_iter()
-        .chain(&field_attrs.reveal_as);
+            let mut where_clause = (*generics).clone().make_where_clause().clone();
 
-    // Ad variable for this field
-    Ok(quote! {
-        let #mangled_name = { #block };
-        #(
-            let #reveals = & #mangled_name;
-        )*
-    })
+            where_clause.predicates.extend(struct_attrs.predicates);
+
+            Some(where_clause)
+        };
+
+        let reveal = struct_attrs.reveal.map(|pat| {
+            let with_param_name = &ctx.with_param_name;
+            quote! {
+                let #pat = #with_param_name;
+            }
+        });
+
+        Ok(Self {
+            ctx,
+            name,
+            generics,
+            input_lifetime_param,
+            body,
+            err,
+            where_clause,
+            reveal,
+            trait_info,
+        })
+    }
 }
 
-#[allow(clippy::too_many_lines)]
-pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, TokenStream> {
-    let name = &ast.ident;
+impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let Self {
+            name,
+            ctx,
+            generics,
+            body,
+            input_lifetime_param,
+            err,
+            where_clause,
+            reveal,
+            trait_info:
+                TraitInfo {
+                    trait_kind,
+                    fn_name,
+                    fn_args,
+                    with_ty,
+                },
+        } = self;
 
-    let Data::Struct(data_struct) = &ast.data else {
-        let span = ast.span();
-        return Err(quote_spanned! {
-            span=> compile_error!("FromByteReader can only be derived for structs")
-        });
-    };
+        let Ctx {
+            mod_name,
+            reader_param,
+            byte_read_trait,
+            input_lifetime,
+            ..
+        } = ctx;
 
+        let (_, ty_generics, _) = generics.split_for_impl();
+        let impl_generics = std::iter::once(input_lifetime_param).chain(&generics.params);
+
+        quote! {
+            #[automatically_derived]
+            impl <#(#impl_generics),*> ::#mod_name::#trait_kind <#input_lifetime, #with_ty> for #name #ty_generics #where_clause {
+                type Err = #err;
+                fn #fn_name <R>(mut #reader_param: R, #fn_args) -> ::#mod_name::Result<Self, Self::Err>
+                where
+                    R: ::#mod_name::#byte_read_trait<#input_lifetime>,
+                {
+                    #reveal
+                    #body
+                }
+            }
+        }.to_tokens(tokens);
+    }
+}
+
+pub fn impl_trait(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let ctx = Ctx::default();
 
-    let struct_attrs = parse_struct_attrs(&ast.attrs, &ctx)?;
-
-    let mut body = TokenStream::new();
-    match data_struct.fields {
-        syn::Fields::Named(ref fields) => {
-            let mut return_value = TokenStream::new();
-
-            for field in &fields.named {
-                let name = field.ident.as_ref().ok_or_else(|| {
-                    let span = field.span();
-                    quote_spanned!(span=> compile_error!("unnamed field in non-tuple struct"))
-                })?;
-
-                let mangled_name = dyn_mangle(name);
-
-                variable_block(Some(name), &mangled_name, &field.attrs, &ctx)?.to_tokens(&mut body);
-
-                // Add this field to return value
-                quote! {
-                    #name: #mangled_name,
-                }
-                .to_tokens(&mut return_value);
-            }
-
-            // Add return value to body
-            quote! {
-                Ok(Self { #return_value })
-            }
-            .to_tokens(&mut body);
-        }
-        syn::Fields::Unnamed(ref fields) => {
-            let mut return_value = TokenStream::new();
-
-            for (field_num, field) in fields.unnamed.iter().enumerate() {
-                let mangled_name = dyn_mangle_display(field_num);
-
-                // Initialize variable
-                variable_block(None, &mangled_name, &field.attrs, &ctx)?.to_tokens(&mut body);
-
-                // Ad this field to return value
-                quote! {
-                    #mangled_name,
-                }
-                .to_tokens(&mut return_value);
-            }
-
-            // Add return value to body
-            quote! {
-                Ok(Self(#return_value))
-            }
-            .to_tokens(&mut body);
-        }
-        syn::Fields::Unit => quote! {
-            Ok(Self)
-        }
-        .to_tokens(&mut body),
-    };
-
-    let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
-
-    let input_lifetime = &ctx.input_lifetime;
-    let lifetimes = ast.generics.lifetimes().collect::<Vec<_>>();
-    let impl_generics = std::iter::once(if lifetimes.is_empty() {
-        quote!(#input_lifetime)
-    } else {
-        quote!(#input_lifetime: #(#lifetimes),*)
-    })
-    .chain(
-        ast.generics
-            .params
-            .clone()
-            .into_iter()
-            .map(|p| p.to_token_stream()),
-    );
-
-    let reader = &ctx.reader_param;
-    let err = struct_attrs
-        .error
-        .as_ref()
-        .map_or_else(|| quote!(::barse::Error), syn::Type::to_token_stream);
-    Ok(quote! {
-        #[automatically_derived]
-        impl <#(#impl_generics),*> FromByteReader<#input_lifetime> for #name #ty_generics #where_clause {
-            type Err = #err;
-            fn from_byte_reader<R>(mut #reader: R) -> ::barse::Result<Self, Self::Err>
-            where
-                R: ::barse::ByteRead<#input_lifetime>,
-            {
-                #body
-            }
-        }
-    })
+    Ok(TraitImpl::new(ast, &ctx)?.into_token_stream())
 }
