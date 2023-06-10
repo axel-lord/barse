@@ -1,6 +1,4 @@
-use std::any::{type_name, Any, TypeId};
-
-use crate::{error::Error, reader::DynamicByteReader, Endian, Result};
+use crate::{Endian, Result};
 
 /// Trait for types that read bytes.
 pub trait ByteRead<'input> {
@@ -18,7 +16,10 @@ pub trait ByteRead<'input> {
     /// # Errors
     /// If the implementing type needs to.
     fn read<const COUNT: usize>(&mut self) -> Result<[u8; COUNT]> {
-        Ok(self.read_ref(COUNT)?.try_into()?)
+        Ok(self
+            .read_ref(COUNT)?
+            .try_into()
+            .map_err(anyhow::Error::from)?)
     }
 
     /// A reference to all remaining data.
@@ -42,32 +43,5 @@ pub trait ByteRead<'input> {
     ///
     /// # Errors
     /// If the implementing type needs to.
-    fn at(&self, _location: usize) -> Result<Self::AtByteRead> {
-        Err(Error::AtNotSupported(type_name::<Self>().into()))
-    }
-
-    /// Get a value of the specified type from the reader, usefull to pass along say a header.
-    ///
-    /// # Errors
-    /// If the implementing type needs to.
-    fn flag<T>(&self) -> Result<&T>
-    where
-        T: Any,
-    {
-        self.get_flag(TypeId::of::<T>())
-            .and_then(<(dyn Any + 'static)>::downcast_ref)
-            .ok_or_else(Error::flag_not_found::<T>)
-    }
-
-    /// Get a flag as an any from the reader, read using a [`any::TypeId`].
-    fn get_flag(&self, id: TypeId) -> Option<&dyn Any>;
-
-    /// Convert self into a [`crate::DynamicByteReader`][DynamicByteReader] it still implements
-    /// [`ByteRead`] but has the same type regardless of the [`ByteRead`] that was converted, however
-    fn into_dynamic(self) -> DynamicByteReader<'input>
-    where
-        Self: Sized + 'input,
-    {
-        DynamicByteReader::from_reader(self)
-    }
+    fn at(&self, _location: usize) -> Result<Self::AtByteRead>;
 }

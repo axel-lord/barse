@@ -1,7 +1,4 @@
-use std::{
-    any::{Any, TypeId},
-    io::Cursor,
-};
+use std::io::Cursor;
 
 use crate::{ByteRead, Error, Result};
 
@@ -9,8 +6,10 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
     type AtByteRead = Self;
 
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
-        let start: usize = self.position().try_into()?;
-        let end = start.checked_add(count).ok_or(Error::CheckedOperation)?;
+        let start: usize = self.position().try_into().map_err(anyhow::Error::from)?;
+        let end = start
+            .checked_add(count)
+            .ok_or(Error::ReadOverflow { start, count })?;
         let range = start..end;
 
         // Make sure the slicing is possible
@@ -20,7 +19,7 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
             .ok_or(Error::SliceFailure(range.clone()))?;
 
         // Update position performed here to avoid mutable borrow after immutable borrow.
-        self.set_position(end.try_into()?);
+        self.set_position(end.try_into().map_err(anyhow::Error::from)?);
 
         self.get_ref()
             .get(range.clone())
@@ -33,17 +32,13 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
         let mut cursor = Cursor::new(*self.get_ref());
-        cursor.set_position(location.try_into()?);
+        cursor.set_position(location.try_into().map_err(anyhow::Error::from)?);
 
         Ok(cursor)
     }
 
-    fn get_flag(&self, _id: TypeId) -> Option<&dyn Any> {
-        None
-    }
-
     fn remaining(&mut self) -> Result<&'input [u8]> {
-        let start: usize = self.position().try_into()?;
+        let start: usize = self.position().try_into().map_err(anyhow::Error::from)?;
         let end = self.get_ref().as_ref().len();
         let range = start..end;
 
@@ -54,7 +49,7 @@ impl<'input> ByteRead<'input> for Cursor<&'input [u8]> {
             .ok_or(Error::SliceFailure(range.clone()))?;
 
         // Update position performed here to avoid mutable borrow after immutable borrow.
-        self.set_position(end.try_into()?);
+        self.set_position(end.try_into().map_err(anyhow::Error::from)?);
 
         self.get_ref()
             .get(range.clone())
