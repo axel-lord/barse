@@ -2,8 +2,6 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{ByteRead, Endian, Result};
 
-use super::DynamicByteReader;
-
 /// [`ByteRead`] wrapper using given endian.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EndianByteReader<R>(R, Endian);
@@ -70,29 +68,11 @@ where
         self.1
     }
 
-    fn flag<T>(&self) -> Result<&T>
-    where
-        T: std::any::Any,
-    {
-        self.0.flag()
-    }
-
     fn all(&self) -> Result<&'input [u8]> {
         self.0.all()
     }
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
         Ok(EndianByteReader(self.0.at(location)?, self.1))
-    }
-
-    fn get_flag(&self, id: std::any::TypeId) -> Option<&dyn std::any::Any> {
-        self.0.get_flag(id)
-    }
-
-    fn into_dynamic(self) -> DynamicByteReader<'input>
-    where
-        Self: Sized + 'input,
-    {
-        DynamicByteReader::from_reader(self)
     }
 }

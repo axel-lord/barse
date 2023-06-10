@@ -1,39 +1,23 @@
 //! Error utilities for crate.
 
-use std::{
-    any, array::TryFromSliceError, borrow::Cow, fmt::Debug, num::TryFromIntError, ops::Range,
-};
+use std::{fmt::Debug, ops::Range};
 
 use thiserror::Error;
 
 /// Error type in use by crate.
 #[derive(Debug, Error)]
 pub enum Error {
-    /// A flag of the specified type could not be found while parsing.
-    #[error("could not find flag of type {0}")]
-    FlagNotFound(&'static str),
-    /// Reader cannot read flags.
-    #[error("flags cannot be read using reader of this type {0}")]
-    FlagReadUnsupported(&'static str),
     /// Slicing of input bytes failed, possibly due to invalid indices.
     #[error("a slice ({0:?}) was not valid")]
     SliceFailure(Range<usize>),
     /// A checked operation failed.
-    #[error("a checked operation failed")]
-    CheckedOperation,
-    /// A flag had the right type but contents that do not meet the needs of parse returning error.
-    #[error("an unsupported value in a flag vas given, hint \"{0}\", value {1:?}")]
-    UnsupportedFlagValue(Cow<'static, str>, Box<dyn Debug + Send + Sync>),
-    /// [crate::ByteRead::at][ByteRead::at] was called for a reader not supporting it.
-    #[error("at is not supported for reader, {0}")]
-    AtNotSupported(Cow<'static, str>),
-
-    /// Forward of standard library error.
-    #[error(transparent)]
-    TryFromIntError(#[from] TryFromIntError),
-    /// Forward of standard library error.
-    #[error(transparent)]
-    TryFromSliceError(#[from] TryFromSliceError),
+    #[error("an overflow happened while reading {count} bytes starting at index {start}")]
+    ReadOverflow {
+        /// Index of first byte in failed read.
+        start: usize,
+        /// Amount of bytes that should have been read.
+        count: usize,
+    },
 
     /// Anyhow catch-all
     #[error(transparent)]
@@ -41,12 +25,6 @@ pub enum Error {
 }
 
 impl Error {
-    /// Create a `FlagNotFound` instance with the content set by give type param.
-    #[must_use]
-    pub fn flag_not_found<T>() -> Self {
-        Self::FlagNotFound(any::type_name::<T>())
-    }
-
     /// If the error is anyhow it might still be of this type but obscured, this method downcasts
     /// the anyhow error as many times as it needs to to either confirm the anyhow error is not of
     /// [`enum@Error`] or that it is a not [`Error::Anyhow`].
