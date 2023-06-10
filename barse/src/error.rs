@@ -10,13 +10,21 @@ pub enum Error {
     /// Slicing of input bytes failed, possibly due to invalid indices.
     #[error("a slice ({0:?}) was not valid")]
     SliceFailure(Range<usize>),
-    /// A checked operation failed.
+    /// An overflow occured on a read.
     #[error("an overflow happened while reading {count} bytes starting at index {start}")]
     ReadOverflow {
         /// Index of first byte in failed read.
         start: usize,
         /// Amount of bytes that should have been read.
         count: usize,
+    },
+    /// The [ByteRead::at][crate::ByteRead::at] function was called with an out of bounds location.
+    #[error("at was called for a byte reader with an out of bounds location, requested location: {requested}, highest possible location: {max}")]
+    OutOfBoundsAt {
+        /// Requested locations
+        requested: usize,
+        /// Highest possible location.
+        max: usize,
     },
 
     /// Anyhow catch-all

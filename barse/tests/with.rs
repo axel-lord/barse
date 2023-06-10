@@ -1,6 +1,6 @@
-use std::{assert_eq, io::Cursor};
+use std::assert_eq;
 
-use barse::{wrap, Error, FromByteReader, FromByteReaderWith};
+use barse::{reader::Cursor, wrap, Error, FromByteReader, FromByteReaderWith};
 
 #[test]
 pub fn option() {
