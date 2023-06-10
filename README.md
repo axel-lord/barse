@@ -19,6 +19,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [ ] Replace Slice error with more malleable one that can indicate reason.
 - [ ] Add assertion error.
 - [ ] Add assertions to macro for both types and fields.
+- [ ] Replace const endian reader with little big variants.
 
 ## Licensing
 This project is licensed under MIT or Apache-2.0 use whichever you fancy.
