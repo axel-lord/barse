@@ -1,6 +1,4 @@
-use std::io::Cursor;
-
-use barse::{wrap, Error, FromByteReader};
+use barse::{reader::Cursor, wrap, Error, FromByteReader};
 
 fn u8_is_digit(value: u8) -> bool {
     value.is_ascii_digit()
