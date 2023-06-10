@@ -1,6 +1,4 @@
-use std::any::{self, Any};
-
-use crate::{reader::DynamicByteReader, ByteRead, Endian, Result};
+use crate::{ByteRead, Endian, Result};
 
 #[deny(clippy::missing_trait_methods)]
 impl<'input, R> ByteRead<'input> for Box<R>
@@ -31,23 +29,5 @@ where
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
         (**self).at(location)
-    }
-
-    fn flag<T>(&self) -> Result<&T>
-    where
-        T: Any,
-    {
-        (**self).flag()
-    }
-
-    fn get_flag(&self, id: any::TypeId) -> Option<&dyn any::Any> {
-        (**self).get_flag(id)
-    }
-
-    fn into_dynamic(self) -> DynamicByteReader<'input>
-    where
-        Self: Sized + 'input,
-    {
-        self.into()
     }
 }

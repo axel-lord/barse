@@ -52,67 +52,15 @@
 use std::fmt;
 
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote, quote_spanned};
-use syn::{spanned::Spanned, FnArg, ItemFn, Type, TypeReference};
+use quote::format_ident;
 
-mod condition;
 mod from_byte_reader;
-mod size_query;
-mod vec_len_query;
 
 /// Derive a `FromByteReader` implementation.
 #[must_use]
 pub fn derive_from_byte_reader(item: TokenStream) -> TokenStream {
     let ast = parse_as!(item as syn::DeriveInput);
     from_byte_reader::impl_trait(&ast).unwrap_or_else(syn::Error::into_compile_error)
-}
-
-/// Create a `ByteSizeQuery` implementor from a function.
-#[must_use]
-pub fn byte_size_query(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let name = parse_as!(attr as Ident);
-    let body = parse_as!(item as ItemFn);
-
-    let gen_trait = simplify_result(size_query::generate_impl(&name, &body));
-
-    quote! {
-        #body
-        #gen_trait
-    }
-}
-
-/// Create a Condition implementor from a function.
-#[must_use]
-pub fn condition(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let name = parse_as!(attr as Ident);
-    let body = parse_as!(item as ItemFn);
-
-    let gen_trait = simplify_result(condition::generate_impl(&name, &body));
-
-    quote! {
-        #body
-        #gen_trait
-    }
-}
-
-/// Create a `VecLenQuery` implementor from a function.
-#[must_use]
-pub fn vec_len_query(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let name = parse_as!(attr as Ident);
-    let body = parse_as!(item as ItemFn);
-
-    let gen_trait = simplify_result(vec_len_query::generate_impl(&name, &body));
-
-    quote! {
-        #body
-        #gen_trait
-    }
-}
-
-fn simplify_result<T>(res: Result<T, T>) -> T {
-    match res {
-        Ok(t) | Err(t) => t,
-    }
 }
 
 fn dyn_mangle(ident: &Ident) -> Ident {
@@ -128,45 +76,6 @@ where
 
 fn static_mangle(ident: &str) -> Ident {
     format_ident!("__static_barse_derive_i{ident}")
-}
-
-fn fn_name_and_type(body: &ItemFn) -> Result<(&Ident, &Type), proc_macro2::TokenStream> {
-    let fn_name = &body.sig.ident;
-
-    if !body.sig.generics.params.is_empty() {
-        let span = body.sig.generics.span();
-        return Err(quote_spanned! {
-            span=> compile_error!("annotated function can not have generic params or lifetimes")
-        });
-    }
-
-    if body.sig.inputs.len() != 1 {
-        let span = body.sig.inputs.span();
-        return Err(quote_spanned! {
-            span=> compile_error!("annotated function should have one and only have one parameter")
-        });
-    }
-
-    let Some(FnArg::Typed(flag_param)) = &body.sig.inputs.first() else {
-        let span = body.sig.inputs.span();
-        return Err(quote_spanned!{
-            span=> compile_error!("annotated function should have a non-self parameter")
-        });
-    };
-
-    let Type::Reference(TypeReference {
-        lifetime: None,
-        mutability: None,
-        elem: ty,
-        ..
-    }) = &*flag_param.ty else {
-        let span = flag_param.span();
-        return Err(quote_spanned!{
-            span=> compile_error!("annotaded function should have it's param be a immutable reference with no specified lifetime")
-        });
-    };
-
-    Ok((fn_name, ty))
 }
 
 macro_rules! parse_as {
