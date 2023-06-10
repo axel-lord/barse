@@ -15,7 +15,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [x] Dynamic dispatch based ByteRead wrapper 
 - [x] Remove flags
 - [x] Replace Cursor impl with custom type using usize.
-- [ ] Implement FromByteReaderWith for u8 slices.
+- [x] Implement FromByteReaderWith for u8 slices.
 - [ ] Replace Slice error with more malleable one that can indicate reason.
 - [ ] Add assertion error.
 - [ ] Add assertions to macro for both types and fields.

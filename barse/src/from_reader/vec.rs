@@ -122,3 +122,14 @@ where
         Vec::from_byte_reader_with(reader, (with, identity))
     }
 }
+
+impl<'input> FromByteReaderWith<'input, wrap::Size> for Vec<u8> {
+    type Err = crate::Error;
+
+    fn from_byte_reader_with<R>(reader: R, with: wrap::Size) -> Result<Self, Self::Err>
+    where
+        R: ByteRead<'input>,
+    {
+        <&[u8]>::from_byte_reader_with(reader, with).map(Vec::from)
+    }
+}
