@@ -22,6 +22,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [x] Replace const endian reader with little big variants
 - [ ] ~~Add specialized way of getting a mut reference to a reader and remove the auto mut ref impl~~
 - [ ] Add with impls for endianess
+- [ ] Replace ByteRead trait with struct
 
 ## Licensing
 This project is licensed under MIT or Apache-2.0 use whichever you fancy.
