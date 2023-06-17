@@ -1,13 +1,13 @@
 use std::assert_eq;
 
-use barse::{reader::Cursor, wrap, Error, FromByteReader, FromByteReaderWith};
+use barse::{reader::Cursor, wrap, ByteRead, Error, FromByteReader, FromByteReaderWith};
 
 #[test]
 pub fn option() {
     /// Parse a seq of 5 (or more) if the first byte is a number the rest of the string is parsed.
     fn parse_seq(seq: &[u8]) -> Result<Option<[u8; 4]>, Error> {
         let mut reader = Cursor::new(seq);
-        let first = <u8 as FromByteReader>::from_byte_reader(&mut reader)?;
+        let first = <u8 as FromByteReader>::from_byte_reader(reader.by_ref())?;
 
         FromByteReaderWith::from_byte_reader_with(reader, (first as char).is_ascii_digit())
     }
@@ -38,7 +38,7 @@ pub fn option() {
 pub fn vec() {
     fn parse_seq(seq: &[u8]) -> Result<Vec<u8>, Error> {
         let mut reader = Cursor::new(seq);
-        let size: usize = u8::from_byte_reader(&mut reader)?.into();
+        let size: usize = u8::from_byte_reader(reader.by_ref())?.into();
 
         Vec::from_byte_reader_with(reader, wrap::Len(size))
     }
@@ -55,9 +55,9 @@ pub fn vec() {
 pub fn vec_option() {
     fn parse_seq(seq: &[u8]) -> Result<Vec<Option<[u8; 2]>>, Error> {
         let mut reader = Cursor::new(seq);
-        let size: usize = u8::from_byte_reader(&mut reader)?.into();
+        let size: usize = u8::from_byte_reader(reader.by_ref())?.into();
 
-        let state = Vec::<u8>::from_byte_reader_with(&mut reader, wrap::Len(size))?;
+        let state = Vec::<u8>::from_byte_reader_with(reader.by_ref(), wrap::Len(size))?;
 
         Vec::from_byte_reader_with(reader, (wrap::Iter(&state), |b: &u8| *b != b'0'))
     }
@@ -80,7 +80,7 @@ pub fn option_vec() {
     fn parse_seq(seq: &[u8]) -> Result<Option<Vec<u8>>, Error> {
         let mut reader = Cursor::new(seq);
 
-        let size: usize = u8::from_byte_reader(&mut reader)?.into();
+        let size: usize = u8::from_byte_reader(reader.by_ref())?.into();
 
         Option::from_byte_reader_with(reader, (size != 0, wrap::Len(size)))
     }

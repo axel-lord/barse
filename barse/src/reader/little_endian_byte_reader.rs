@@ -11,6 +11,8 @@ where
 {
     type AtByteRead = LittleEndianByteReader<R::AtByteRead>;
 
+    type ByRefByteRead<'s> = LittleEndianByteReader<R::ByRefByteRead<'s>> where Self: 's;
+
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
         self.0.read_ref(count)
     }
@@ -33,5 +35,9 @@ where
 
     fn endian(&self) -> Endian {
         Endian::Little
+    }
+
+    fn by_ref(&mut self) -> Self::ByRefByteRead<'_> {
+        LittleEndianByteReader(self.0.by_ref())
     }
 }

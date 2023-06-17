@@ -17,7 +17,7 @@ where
         let mut vec = Vec::with_capacity(with);
 
         for _ in 0..with {
-            vec.push(T::from_byte_reader(&mut reader)?);
+            vec.push(T::from_byte_reader(reader.by_ref())?);
         }
 
         Ok(vec)
@@ -40,7 +40,7 @@ where
         let mut vec = Vec::with_capacity(size);
 
         for _ in 0..size {
-            vec.push(T::from_byte_reader_with(&mut reader, with.clone())?);
+            vec.push(T::from_byte_reader_with(reader.by_ref(), with.clone())?);
         }
 
         Ok(vec)
@@ -63,7 +63,7 @@ where
         let mut vec = Vec::with_capacity(with.len());
 
         for with in with {
-            vec.push(T::from_byte_reader_with(&mut reader, map(with))?);
+            vec.push(T::from_byte_reader_with(reader.by_ref(), map(with))?);
         }
 
         Ok(vec)
@@ -88,7 +88,7 @@ where
         let mut vec = Vec::new();
 
         for with in with {
-            vec.push(T::from_byte_reader_with(&mut reader, map(with))?);
+            vec.push(T::from_byte_reader_with(reader.by_ref(), map(with))?);
         }
 
         Ok(vec)
