@@ -13,4 +13,3 @@ mod endian_byte_reader;
 mod little_endian_byte_reader;
 
 mod impl_box;
-mod impl_mut_ref;
