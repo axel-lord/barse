@@ -6,7 +6,6 @@ use crate::from_byte_reader::{parse_attrs, Ctx};
 
 #[derive(Default)]
 pub struct FieldAttrs {
-    pub flags: Vec<syn::Expr>,
     pub reveal: Option<Span>,
     pub reveal_as: Vec<Ident>,
     pub parse_as: ParseAs,
@@ -18,13 +17,6 @@ impl FieldAttrs {
         let lit_str: syn::LitStr = syn::parse2(item.value.into_token_stream())?;
 
         let ident: syn::Ident = syn::parse2(item.path.into_token_stream())?;
-
-        if ident == ctx.flag_attr {
-            let expr = lit_str.parse()?;
-            self.flags.push(expr);
-
-            return Ok(());
-        }
 
         if ident == ctx.from_attr {
             let path = lit_str.parse()?;

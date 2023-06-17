@@ -20,7 +20,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [ ] Add assertion error
 - [ ] Add assertions to macro for both types and fields
 - [x] Replace const endian reader with little big variants
-- [ ] ~~Add specialized way of getting a mut reference to a reader and remove the auto mut ref impl~~
+- [x] Add specialized way of getting a mut reference to a reader and remove the auto mut ref impl
 - [ ] Add with impls for endianess
 - [ ] Replace ByteRead trait with struct
 

@@ -22,7 +22,7 @@ macro_rules! from_byte_reader_tuple_impl {
             {
                 Ok((
                     $(
-                    <$templs as FromByteReader>::from_byte_reader(&mut reader)?,
+                    <$templs as FromByteReader>::from_byte_reader(reader.by_ref())?,
                     )*
                 ))
             }

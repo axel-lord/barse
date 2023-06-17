@@ -13,7 +13,6 @@ mod struct_attrs;
 pub struct Ctx {
     pub mod_name: Ident,
     pub attr_ident: Ident,
-    pub flag_attr: Ident,
     pub from_attr: Ident,
     pub try_from_attr: Ident,
     pub reveal_attr: Ident,
@@ -64,7 +63,6 @@ impl Default for Ctx {
         Ctx {
             mod_name: id("barse"),
             attr_ident: id("barse"),
-            flag_attr: id("flag"),
             from_attr: id("from"),
             try_from_attr: id("try_from"),
             reveal_attr: id("reveal"),

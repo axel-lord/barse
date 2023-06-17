@@ -18,17 +18,8 @@ pub fn variable_block(
     let reader = &ctx.reader_param;
 
     let mut block = quote! {
-        let #reader = &mut #reader;
+        let #reader = #reader.by_ref();
     };
-
-    // flag
-    if !field_attrs.flags.is_empty() {
-        let flags = &field_attrs.flags;
-        quote! {
-                let #reader = ::barse::reader::FlagByteReader::new(#reader, [#(#flags as &dyn ::std::any::Any),*]);
-            }
-            .to_tokens(&mut block);
-    }
 
     // with
     let (trait_name, method_call) = field_attrs.with.as_ref().map_or_else(
