@@ -5,6 +5,11 @@ pub trait ByteRead<'input> {
     /// Type returned by [`Self::at`], must implement [`ByteRead`] itself.
     type AtByteRead: ByteRead<'input>;
 
+    /// Type returned by [`Self::by_ref`], must implement [`ByteRead`] itself.
+    type ByRefByteRead<'s>: 's + ByteRead<'input>
+    where
+        Self: 's;
+
     /// A reference to a runtime specified amount of bytes.
     ///
     /// # Errors
@@ -38,6 +43,9 @@ pub trait ByteRead<'input> {
     /// # Errors
     /// If the implementing type needs to.
     fn all(&self) -> Result<&'input [u8]>;
+
+    /// Get a reference to self, often just a mut ref.
+    fn by_ref(&mut self) -> Self::ByRefByteRead<'_>;
 
     /// A new reader starting at the given position of this reader.
     ///
