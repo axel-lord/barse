@@ -7,6 +7,13 @@ pub struct Cursor<'data> {
     position: usize,
 }
 
+/// Reference to a the cursor.
+#[derive(PartialEq, Eq, Debug)]
+pub struct Ref<'cursor, 'data> {
+    slice: &'data [u8],
+    position: &'cursor mut usize,
+}
+
 impl Cursor<'_> {
     /// Construct a new cursor.
     #[must_use]
@@ -43,6 +50,8 @@ impl<'data> From<&'data [u8]> for Cursor<'data> {
 
 impl<'input, 'data: 'input> ByteRead<'input> for Cursor<'data> {
     type AtByteRead = Self;
+
+    type ByRefByteRead<'s> = Ref<'s, 'data> where Self: 's;
 
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
         let start = self.position;
@@ -81,5 +90,52 @@ impl<'input, 'data: 'input> ByteRead<'input> for Cursor<'data> {
                 max: self.slice.len(),
             })
         }
+    }
+
+    fn by_ref(&mut self) -> Self::ByRefByteRead<'_> {
+        let Cursor { slice, position } = self;
+        Ref {slice, position}
+    }
+}
+
+impl<'input, 'data: 'input, 'cursor> ByteRead<'input> for Ref<'cursor, 'data> {
+    type AtByteRead = Cursor<'data>;
+
+    type ByRefByteRead<'s> = Ref<'s, 'data> 
+    where
+        Self: 's;
+
+    fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
+        let start = *self.position;
+        let end = start
+            .checked_add(count)
+            .ok_or(Error::ReadOverflow { start, count })?;
+        let range = start..end;
+
+        let slice = self.slice.get(range.clone());
+
+        if let Some(slice) = slice {
+            *self.position = end;
+            Ok(slice)
+        } else {
+            Err(Error::SliceFailure(range))
+        }
+    }
+
+    fn remaining(&mut self) -> Result<&'input [u8]> {
+        self.read_ref(Cursor {position: *self.position, slice: self.slice}.remaining_bytes()?)
+    }
+
+    fn all(&self) -> Result<&'input [u8]> {
+        Ok(self.slice)
+    }
+
+    fn by_ref(&mut self) -> Self::ByRefByteRead<'_> {
+        let Ref { slice, position } = self;
+        Ref {slice, position}
+    }
+
+    fn at(&self, location: usize) -> Result<Self::AtByteRead> {
+        Cursor {slice: self.slice, position: *self.position}.at(location)
     }
 }

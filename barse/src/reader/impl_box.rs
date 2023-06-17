@@ -7,6 +7,8 @@ where
 {
     type AtByteRead = R::AtByteRead;
 
+    type ByRefByteRead<'s> = R::ByRefByteRead<'s> where Self: 's;
+
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
         (**self).read_ref(count)
     }
@@ -29,5 +31,9 @@ where
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
         (**self).at(location)
+    }
+
+    fn by_ref(&mut self) -> Self::ByRefByteRead<'_> {
+        (**self).by_ref()
     }
 }
