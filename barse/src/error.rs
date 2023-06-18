@@ -8,8 +8,13 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum Error {
     /// Slicing of input bytes failed, possibly due to invalid indices.
-    #[error("a slice ({0:?}) was not valid")]
-    SliceFailure(Range<usize>),
+    #[error("a slice {requested:?} was not valid both ends should be in {bounds:?}")]
+    SliceFailure {
+        /// Requested range to get from slice.
+        requested: Range<usize>,
+        /// Bounds of slice.
+        bounds: Range<usize>,
+    },
     /// An overflow occured on a read.
     #[error("an overflow happened while reading {count} bytes starting at index {start}")]
     ReadOverflow {
@@ -41,9 +46,12 @@ impl Error {
     /// use barse::Error;
     /// use anyhow::anyhow;
     ///
-    /// let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure(0..0)])]);
+    /// let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure {
+    ///     requested: 0..0,
+    ///     bounds: 0..0
+    /// }])]);
     ///
-    /// assert!(matches!(err.anyhow_flatten(), Error::SliceFailure(..)));
+    /// assert!(matches!(err.anyhow_flatten(), Error::SliceFailure{..}));
     /// ```
     #[must_use]
     pub fn anyhow_flatten(self) -> Self {
@@ -69,8 +77,11 @@ mod tests {
 
     #[test]
     pub fn anyhow_flatten() {
-        let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure(0..0)])]);
+        let err = Error::Anyhow(anyhow![Error::Anyhow(anyhow![Error::SliceFailure {
+            requested: 0..0,
+            bounds: 0..0
+        }])]);
 
-        assert!(matches!(err.anyhow_flatten(), Error::SliceFailure(..)));
+        assert!(matches!(err.anyhow_flatten(), Error::SliceFailure { .. }));
     }
 }
