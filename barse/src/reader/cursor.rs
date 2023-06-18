@@ -48,26 +48,20 @@ impl<'data> From<&'data [u8]> for Cursor<'data> {
     }
 }
 
+impl<'data> From<&Ref<'_, 'data>> for Cursor<'data> {
+    fn from(value: &Ref<'_, 'data>) -> Self {
+        let Ref { slice, position } = value;
+        Cursor { slice, position: **position }
+    }
+}
+
 impl<'input, 'data: 'input> ByteRead<'input> for Cursor<'data> {
     type AtByteRead = Self;
 
     type ByRefByteRead<'s> = Ref<'s, 'data> where Self: 's;
 
     fn read_ref(&mut self, count: usize) -> Result<&'input [u8]> {
-        let start = self.position;
-        let end = start
-            .checked_add(count)
-            .ok_or(Error::ReadOverflow { start, count })?;
-        let range = start..end;
-
-        let slice = self.slice.get(range.clone());
-
-        if let Some(slice) = slice {
-            self.position = end;
-            Ok(slice)
-        } else {
-            Err(Error::SliceFailure(range))
-        }
+        self.by_ref().read_ref(count)
     }
 
     fn remaining(&mut self) -> Result<&'input [u8]> {
@@ -110,15 +104,14 @@ impl<'input, 'data: 'input, 'cursor> ByteRead<'input> for Ref<'cursor, 'data> {
         let end = start
             .checked_add(count)
             .ok_or(Error::ReadOverflow { start, count })?;
-        let range = start..end;
 
-        let slice = self.slice.get(range.clone());
+        let slice = self.slice.get(start..end);
 
         if let Some(slice) = slice {
             *self.position = end;
             Ok(slice)
         } else {
-            Err(Error::SliceFailure(range))
+            Err(Error::SliceFailure { requested: start..end, bounds: *self.position..self.slice.len() })
         }
     }
 
@@ -136,6 +129,6 @@ impl<'input, 'data: 'input, 'cursor> ByteRead<'input> for Ref<'cursor, 'data> {
     }
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {
-        Cursor {slice: self.slice, position: *self.position}.at(location)
+        Cursor::from(self).at(location)
     }
 }

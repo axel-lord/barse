@@ -16,7 +16,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [x] Remove flags
 - [x] Replace Cursor impl with custom type using usize
 - [x] Implement FromByteReaderWith for u8 slices
-- [ ] Replace Slice error with more malleable one that can indicate reason
+- [x] Replace Slice error with more malleable one that can indicate reason
 - [ ] Add assertion error
 - [ ] Add assertions to macro for both types and fields
 - [x] Replace const endian reader with little big variants
