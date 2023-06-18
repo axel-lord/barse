@@ -51,7 +51,6 @@
 )]
 
 // Utility
-pub use endian::Endian;
 pub use error::Error;
 
 // Traits
@@ -68,7 +67,7 @@ pub use barse_derive::FromByteReader;
 pub type Result<T, E = error::Error> = std::result::Result<T, E>;
 
 // Utility
-mod endian;
+pub mod endian;
 mod error;
 
 // Traits

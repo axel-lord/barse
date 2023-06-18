@@ -1,10 +1,10 @@
-use crate::{ByteRead, FromByteReader, Result};
+use crate::{endian::Endian, ByteRead, FromByteReader, Result};
 
 from_byte_reader_tuple_impl_recursive! {
-    A, B, C,
-    D, E, F,
-    G, H, I,
-    J, K, L
+    A_, B_, C_,
+    D_, E_, F_,
+    G_, H_, I_,
+    J_, K_, L_
 }
 
 macro_rules! from_byte_reader_tuple_impl {
@@ -16,13 +16,14 @@ macro_rules! from_byte_reader_tuple_impl {
             )*
         {
             type Err = SharedErr;
-            fn from_byte_reader<R>(mut reader: R) -> Result<Self, SharedErr>
+            fn from_byte_reader<R, E>(mut reader: R) -> Result<Self, SharedErr>
             where
                 R: ByteRead<'input>,
+                E: Endian,
             {
                 Ok((
                     $(
-                    <$templs as FromByteReader>::from_byte_reader(reader.by_ref())?,
+                    <$templs as FromByteReader>::from_byte_reader::<_, E>(reader.by_ref())?,
                     )*
                 ))
             }
