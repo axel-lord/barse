@@ -1,4 +1,4 @@
-use crate::{ByteRead, Error, FromByteReader};
+use crate::{endian::Endian, ByteRead, Error, FromByteReader};
 
 /// Padding in binary data.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -12,9 +12,10 @@ impl<const SIZE: usize> std::fmt::Debug for Padding<SIZE> {
 
 impl<'input, const SIZE: usize> FromByteReader<'input> for Padding<SIZE> {
     type Err = Error;
-    fn from_byte_reader<R>(mut reader: R) -> Result<Self, Self::Err>
+    fn from_byte_reader<R, E>(mut reader: R) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
         reader.read::<SIZE>()?;
         Ok(Self)

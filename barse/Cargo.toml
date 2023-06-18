@@ -20,3 +20,4 @@ bytesize = "1.2.0"
 barse-derive = { path = "../barse-derive", version = "0.4.0", optional = true }
 thiserror = "1.0.40"
 anyhow = "1.0.71"
+paste = "1.0.12"

@@ -1,4 +1,4 @@
-use crate::{Endian, Result};
+use crate::Result;
 
 /// Trait for types that read bytes.
 pub trait ByteRead<'input> {
@@ -32,11 +32,6 @@ pub trait ByteRead<'input> {
     /// # Errors
     /// If the implementing type needs to.
     fn remaining(&mut self) -> Result<&'input [u8]>;
-
-    /// The endianess of the reader.
-    fn endian(&self) -> Endian {
-        Endian::Little
-    }
 
     /// All data managed by reader as a slice.
     ///

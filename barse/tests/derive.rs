@@ -1,5 +1,6 @@
 #![cfg(feature = "derive")]
 #![allow(dead_code)]
+use barse::endian;
 use barse::reader::Cursor;
 
 use barse::{from_reader::Padding, FromByteReader};
@@ -38,7 +39,7 @@ pub fn parse_derived_struct() {
 
     let data = test.to_bytes();
 
-    let parsed = StructDerive::from_byte_reader(Cursor::new(&data)).unwrap();
+    let parsed = StructDerive::from_byte_reader::<_, endian::Little>(Cursor::new(&data)).unwrap();
 
     assert_eq!(test, parsed)
 }
@@ -64,7 +65,8 @@ pub fn parse_derived_tuple_struct() {
 
     let data = test.to_bytes();
 
-    let parsed = TupleStructDerive::from_byte_reader(Cursor::new(&data)).unwrap();
+    let parsed =
+        TupleStructDerive::from_byte_reader::<_, endian::Little>(Cursor::new(&data)).unwrap();
 
     assert_eq!(parsed, test)
 }
