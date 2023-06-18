@@ -15,4 +15,5 @@ mod u8_array;
 mod u8_slice;
 mod value;
 mod vec;
+mod with_endian;
 mod with_fn;

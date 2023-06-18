@@ -1,4 +1,4 @@
-use crate::ByteRead;
+use crate::{endian::Endian, ByteRead};
 
 /// Trait for types that can be read from a byte reader provided some extra information is passed.
 pub trait FromByteReaderWith<'input, W>: Sized {
@@ -8,7 +8,8 @@ pub trait FromByteReaderWith<'input, W>: Sized {
     ///
     /// # Errors
     /// If the implementor needs to.
-    fn from_byte_reader_with<R>(reader: R, with: W) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R, E>(reader: R, with: W) -> Result<Self, Self::Err>
     where
-        R: ByteRead<'input>;
+        R: ByteRead<'input>,
+        E: Endian;
 }

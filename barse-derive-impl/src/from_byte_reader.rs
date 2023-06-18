@@ -25,6 +25,10 @@ pub struct Ctx {
     pub from_byte_reader_with_trait: Ident,
     pub from_byte_reader_method: Ident,
     pub from_byte_reader_with_method: Ident,
+    pub endian_mod: Ident,
+    pub endian_trait: Ident,
+    pub reader_template_param: Ident,
+    pub endian_template_param: Ident,
     pub input_lifetime: Lifetime,
     pub with_param_name: Ident,
 }
@@ -75,6 +79,10 @@ impl Default for Ctx {
             from_byte_reader_with_trait: id("FromByteReaderWith"),
             from_byte_reader_method: id("from_byte_reader"),
             from_byte_reader_with_method: id("from_byte_reader_with"),
+            endian_mod: id("endian"),
+            endian_trait: id("Endian"),
+            reader_template_param: id("Reader_"),
+            endian_template_param: id("Endian_"),
             input_lifetime: lt(static_mangle("input")),
             with_param_name: static_mangle("with"),
         }
@@ -198,6 +206,10 @@ impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
             reader_param,
             byte_read_trait,
             input_lifetime,
+            endian_mod,
+            endian_trait,
+            reader_template_param,
+            endian_template_param,
             ..
         } = ctx;
 
@@ -208,9 +220,10 @@ impl<'ast, 'ctx> ToTokens for TraitImpl<'ast, 'ctx> {
             #[automatically_derived]
             impl <#(#impl_generics),*> ::#mod_name::#trait_kind <#input_lifetime, #with_ty> for #name #ty_generics #where_clause {
                 type Err = #err;
-                fn #fn_name <R>(mut #reader_param: R, #fn_args) -> ::#mod_name::Result<Self, Self::Err>
+                fn #fn_name <#reader_template_param, #endian_template_param>(mut #reader_param: #reader_template_param, #fn_args) -> ::#mod_name::Result<Self, Self::Err>
                 where
-                    R: ::#mod_name::#byte_read_trait<#input_lifetime>,
+                    #reader_template_param: ::#mod_name::#byte_read_trait<#input_lifetime>,
+                    #endian_template_param: ::#mod_name::#endian_mod::#endian_trait,
                 {
                     #reveal
                     #body

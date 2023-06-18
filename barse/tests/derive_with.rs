@@ -1,4 +1,4 @@
-use barse::{reader::Cursor, wrap, Error, FromByteReader};
+use barse::{endian, reader::Cursor, wrap, Error, FromByteReader};
 
 fn u8_is_digit(value: u8) -> bool {
     value.is_ascii_digit()
@@ -15,7 +15,7 @@ struct Option4U8 {
 #[test]
 pub fn option() {
     fn parse_seq(seq: &[u8]) -> Result<Option<[u8; 4]>, Error> {
-        Option4U8::from_byte_reader(Cursor::new(seq)).map(|opt| opt.slice)
+        Option4U8::from_byte_reader::<_, endian::Little>(Cursor::new(seq)).map(|opt| opt.slice)
     }
 
     // first character cannot be parsed
@@ -51,7 +51,7 @@ struct VecU8 {
 #[test]
 pub fn vec() {
     fn parse_seq(seq: &[u8]) -> Result<Vec<u8>, Error> {
-        VecU8::from_byte_reader(Cursor::new(seq)).map(|vec| vec.vec)
+        VecU8::from_byte_reader::<_, endian::Little>(Cursor::new(seq)).map(|vec| vec.vec)
     }
 
     assert!(parse_seq(b"").is_err());
@@ -75,7 +75,7 @@ struct VecOpt2U8 {
 #[test]
 pub fn vec_option() {
     fn parse_seq(seq: &[u8]) -> Result<Vec<Option<[u8; 2]>>, Error> {
-        VecOpt2U8::from_byte_reader(Cursor::new(seq)).map(|v| v.vec)
+        VecOpt2U8::from_byte_reader::<_, endian::Little>(Cursor::new(seq)).map(|v| v.vec)
     }
 
     assert!(parse_seq(b"").is_err());
@@ -102,7 +102,7 @@ struct OptVecU8 {
 #[test]
 pub fn option_vec() {
     fn parse_seq(seq: &[u8]) -> Result<Option<Vec<u8>>, Error> {
-        OptVecU8::from_byte_reader(Cursor::new(seq)).map(|v| v.vec)
+        OptVecU8::from_byte_reader::<_, endian::Little>(Cursor::new(seq)).map(|v| v.vec)
     }
 
     assert!(parse_seq(b"").is_err());

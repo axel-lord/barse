@@ -16,6 +16,7 @@ pub fn variable_block(
     let field_attrs = parse_field_attrs::parse_field_attrs(&field.attrs, ctx)?;
 
     let reader = &ctx.reader_param;
+    let endian_template_param = &ctx.endian_template_param;
 
     let mut block = quote! {
         let #reader = #reader.by_ref();
@@ -25,13 +26,16 @@ pub fn variable_block(
     let (trait_name, method_call) = field_attrs.with.as_ref().map_or_else(
         || {
             let method = &ctx.from_byte_reader_method;
-            (&ctx.from_byte_reader_trait, quote! {#method(#reader)})
+            (
+                &ctx.from_byte_reader_trait,
+                quote! {#method::<_, #endian_template_param>(#reader)},
+            )
         },
         |expr| {
             let method = &ctx.from_byte_reader_with_method;
             (
                 &ctx.from_byte_reader_with_trait,
-                quote! {#method(#reader, #expr)},
+                quote! {#method::<_, #endian_template_param>(#reader, #expr)},
             )
         },
     );
