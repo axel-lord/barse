@@ -24,6 +24,7 @@ Proc macro crate for my binary file parsing libray barse.
 - [x] Add with impls for endianess
 - [x] Rework endianess
 - [ ] ~~Replace ByteRead trait with struct~~
+- [ ] Way more tests.
 
 ## Licensing
 This project is licensed under MIT or Apache-2.0 use whichever you fancy.
