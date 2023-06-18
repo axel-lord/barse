@@ -1,4 +1,4 @@
-use crate::{ByteRead, Endian, Result};
+use crate::{ByteRead, Result};
 
 #[deny(clippy::missing_trait_methods)]
 impl<'input, R> ByteRead<'input> for Box<R>
@@ -23,10 +23,6 @@ where
 
     fn read<const COUNT: usize>(&mut self) -> Result<[u8; COUNT]> {
         (**self).read()
-    }
-
-    fn endian(&self) -> Endian {
-        (**self).endian()
     }
 
     fn at(&self, location: usize) -> Result<Self::AtByteRead> {

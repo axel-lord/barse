@@ -1,23 +1,24 @@
 use std::convert::identity;
 
-use crate::{wrap, ByteRead, FromByteReader, FromByteReaderWith};
+use crate::{endian::Endian, wrap, ByteRead, FromByteReader, FromByteReaderWith};
 
 impl<'input, T> FromByteReaderWith<'input, wrap::Len> for Vec<T>
 where
     T: FromByteReader<'input>,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(
+    fn from_byte_reader_with<R, E>(
         mut reader: R,
         wrap::Len(with): wrap::Len,
     ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
         let mut vec = Vec::with_capacity(with);
 
         for _ in 0..with {
-            vec.push(T::from_byte_reader(reader.by_ref())?);
+            vec.push(T::from_byte_reader::<_, E>(reader.by_ref())?);
         }
 
         Ok(vec)
@@ -30,17 +31,21 @@ where
     W: Clone,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(
+    fn from_byte_reader_with<R, E>(
         mut reader: R,
         (wrap::Len(size), with): (wrap::Len, W),
     ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
         let mut vec = Vec::with_capacity(size);
 
         for _ in 0..size {
-            vec.push(T::from_byte_reader_with(reader.by_ref(), with.clone())?);
+            vec.push(T::from_byte_reader_with::<_, E>(
+                reader.by_ref(),
+                with.clone(),
+            )?);
         }
 
         Ok(vec)
@@ -53,17 +58,21 @@ where
     M: FnMut(&'slice S) -> W,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(
+    fn from_byte_reader_with<R, E>(
         mut reader: R,
         (with, mut map): (&'slice [S], M),
     ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
         let mut vec = Vec::with_capacity(with.len());
 
         for with in with {
-            vec.push(T::from_byte_reader_with(reader.by_ref(), map(with))?);
+            vec.push(T::from_byte_reader_with::<_, E>(
+                reader.by_ref(),
+                map(with),
+            )?);
         }
 
         Ok(vec)
@@ -78,17 +87,21 @@ where
 {
     type Err = T::Err;
 
-    fn from_byte_reader_with<R>(
+    fn from_byte_reader_with<R, E>(
         mut reader: R,
         (wrap::Iter(with), mut map): (wrap::Iter<I>, M),
     ) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
         let mut vec = Vec::new();
 
         for with in with {
-            vec.push(T::from_byte_reader_with(reader.by_ref(), map(with))?);
+            vec.push(T::from_byte_reader_with::<_, E>(
+                reader.by_ref(),
+                map(with),
+            )?);
         }
 
         Ok(vec)
@@ -101,11 +114,12 @@ where
     I: IntoIterator,
 {
     type Err = T::Err;
-    fn from_byte_reader_with<R>(reader: R, with: wrap::Iter<I>) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R, E>(reader: R, with: wrap::Iter<I>) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
-        Vec::from_byte_reader_with(reader, (with, identity))
+        Vec::from_byte_reader_with::<_, E>(reader, (with, identity))
     }
 }
 
@@ -115,21 +129,23 @@ where
 {
     type Err = T::Err;
 
-    fn from_byte_reader_with<R>(reader: R, with: &'w [W]) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R, E>(reader: R, with: &'w [W]) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
-        Vec::from_byte_reader_with(reader, (with, identity))
+        Vec::from_byte_reader_with::<_, E>(reader, (with, identity))
     }
 }
 
 impl<'input> FromByteReaderWith<'input, wrap::Size> for Vec<u8> {
     type Err = crate::Error;
 
-    fn from_byte_reader_with<R>(reader: R, with: wrap::Size) -> Result<Self, Self::Err>
+    fn from_byte_reader_with<R, E>(reader: R, with: wrap::Size) -> Result<Self, Self::Err>
     where
         R: ByteRead<'input>,
+        E: Endian,
     {
-        <&[u8]>::from_byte_reader_with(reader, with).map(Vec::from)
+        <&[u8]>::from_byte_reader_with::<_, E>(reader, with).map(Vec::from)
     }
 }
