@@ -1,6 +1,13 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod error;
+
+mod barse;
+
+#[cfg(feature = "std")]
+mod if_std;
+
 mod sealed {
     //! [Sealed] trait.
 
@@ -8,34 +15,56 @@ mod sealed {
     pub trait Sealed {}
 }
 
-pub use endian::Endian;
+pub use self::{barse::Barse, error::Error};
+
+#[doc(inline)]
+pub use self::endian::Endian;
+
+#[cfg(feature = "std")]
+pub use if_std::{AsByteSink, AsByteSource};
 
 pub mod endian;
 
-#[cfg(feature = "std")]
-mod if_std {
-    //! Trait implementations and types used with std feature.
-}
-
 /// Source of bytes for reading.
-pub trait ByteSource {}
-
-/// Sink for writing of bytes.
-pub trait ByteSink {}
-
-/// Trait to serialize and deserialize from binary data.
-pub trait Barse: Sized {
+pub trait ByteSource {
+    /// Error reported by source.
     type Err;
 
-    /// Read an instnce from source with given endianess.
+    /// Try to fill buf with bytes.
     ///
     /// # Errors
-    /// If Soure or implementation errors.
-    fn read<E: Endian>(from: impl ByteSource) -> Result<Self, Self::Err>;
+    /// If source cannot fill buffer, or otherwise fails.
+    fn read_bytes(&mut self, buf: &mut [u8]) -> Result<(), Self::Err>;
 
-    /// Write an instance to a sink with given endianess.
+    /// Read an array of bytes.
     ///
     /// # Errors
-    /// If Sink or implementation errors.
-    fn write<E: Endian>(&self, to: impl ByteSink) -> Result<(), Self::Err>;
+    /// If N bytes cannot be read from source.
+    #[inline(always)]
+    fn read<const N: usize>(&mut self) -> Result<[u8; N], Self::Err> {
+        let mut bytes = [0u8; N];
+        self.read_bytes(&mut bytes)?;
+        Ok(bytes)
+    }
+}
+
+/// Sink for writing of bytes.
+pub trait ByteSink {
+    /// Error reported by sink.
+    type Err;
+
+    /// Try to write buf to sink.
+    ///
+    /// # Errors
+    /// If bytes cannot be written or sink otherwise fails.
+    fn write_bytes(&mut self, buf: &[u8]) -> Result<(), Self::Err>;
+
+    /// Write an array of bytes.
+    ///
+    /// # Errors
+    /// If bytes cannot be written or sink otherwise fails.
+    #[inline(always)]
+    fn write<const N: usize>(&mut self, bytes: [u8; N]) -> Result<(), Self::Err> {
+        self.write_bytes(&bytes)
+    }
 }
