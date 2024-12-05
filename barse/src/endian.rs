@@ -1,99 +1,61 @@
-//! Utilities for dealing with endianess.
+//! Trait and implementations for endianess.
 
-use paste::paste;
+use crate::sealed::Sealed;
 
-/// Type representing an endian of either type. Does not implement [Endian].
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub enum Either {
-    /// Big endian.
-    Big,
-    /// Little endian.
-    Little,
-}
-
-impl From<Big> for Either {
-    fn from(_: Big) -> Self {
-        Self::Big
-    }
-}
-
-impl From<Little> for Either {
-    fn from(_: Little) -> Self {
-        Self::Little
-    }
-}
-
-/// Type representing big endian.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct Big;
-
-/// Type representing little endian.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct Little;
-
-endian! {
-    u8, 1,
-    i8, 1,
-    u16, 2,
-    i16, 2,
-    u32, 4,
-    i32, 4,
-    u64, 8,
-    i64, 8,
-    u128, 16,
-    i128, 16,
-}
+endian_trait!(u8, u16, u32, u64, u128, i8, i32, i64, i128);
 
 macro_rules! endian_trait {
-    ($($req_id: ty, $req_size: literal,)+) => {
-        paste! {
-        #[doc = "Trait to express endianess in the type system."]
-        pub trait Endian {
+    ($($ty:ty),*) => {
+        paste::paste! {
+        #[doc = "Trait defining endianess, [Big], [Little] and [Native] is available."]
+        pub trait Endian: Sealed {
             $(
-            #[doc = "Parse using specified endian."]
-            fn [< parse_ $req_id >](from: [u8; $req_size]) -> $req_id;
+            #[doc = concat!("Read a value from and array of bytes.")]
+            fn [< $ty _from_bytes >](bytes: [u8; size_of::<$ty>()]) -> $ty;
+            )*
+
+            $(
+            #[doc = concat!("Read a value from and array of bytes.")]
+            fn [< $ty _to_bytes >](value: $ty) -> [u8; size_of::<$ty>()];
             )*
         }
+        }
+
+        endian_define! {
+            Big: (be, $($ty),*),
+            Little: (le, $($ty),*),
+            Native: (ne, $($ty),*)
         }
     };
 }
-use endian_trait;
-
-macro_rules! endian_impl {
-    ($($req_id: ty, $req_size: literal,)+) => {
-        paste! {
-        impl Endian for Big {
-            $(
-            fn [< parse_ $req_id >](from: [u8; $req_size]) -> $req_id {
-                $req_id::from_be_bytes(from)
-            }
-            )*
-        }
-        impl Endian for Little{
-            $(
-            fn [< parse_ $req_id >](from: [u8; $req_size]) -> $req_id {
-                $req_id::from_le_bytes(from)
-            }
-            )*
-        }
-        }
-    };
-}
-use endian_impl;
-
-macro_rules! endian {
-    ($($req_id: ty, $req_size: literal,)+) => {
-        endian_trait! {
+macro_rules! endian_define {
+    ($($kind:ident: ($short:ident, $($ty:ty),*)),*) => {
         $(
-            $req_id, $req_size,
-        )*
-        }
+            #[doc = concat!(stringify!($kind), " endian is used.")]
+            pub enum $kind {}
+            impl Sealed for $kind {}
 
-        endian_impl! {
+            endian_impl!($kind, $short, $($ty),*);
+        )*
+    };
+}
+macro_rules! endian_impl {
+    ($name:ident, $short:ident, $($ty:ty),*) => {
+        paste::paste! {
+        impl Endian for $name {
             $(
-            $req_id, $req_size,
+                fn [< $ty _from_bytes >](bytes: [u8; size_of::<$ty>()]) -> $ty {
+                    $ty :: [< from_ $short _bytes >](bytes)
+                }
+
+                fn [< $ty _to_bytes >](value: $ty) -> [u8; size_of::<$ty>()] {
+                    $ty :: [< to_ $short _bytes >](value)
+                }
             )*
+        }
         }
     };
 }
-use endian;
+use endian_define;
+use endian_impl;
+use endian_trait;
