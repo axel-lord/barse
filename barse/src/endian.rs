@@ -1,9 +1,10 @@
-//! Trait and implementations for endianess.
+//! Trait implementations for endianess.
 
 use crate::sealed::Sealed;
 
-endian_trait!(u8, u16, u32, u64, u128, i8, i32, i64, i128);
+endian_trait!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
 
+/// Macro to generate endian trait and impls.
 macro_rules! endian_trait {
     ($($ty:ty),*) => {
         paste::paste! {
@@ -28,10 +29,12 @@ macro_rules! endian_trait {
         }
     };
 }
+/// Macro to generate Endian types.
 macro_rules! endian_define {
     ($($kind:ident: ($short:ident, $($ty:ty),*)),*) => {
         $(
             #[doc = concat!(stringify!($kind), " endian is used.")]
+            #[expect(missing_debug_implementations, reason = "type cannot be constructed")]
             pub enum $kind {}
             impl Sealed for $kind {}
 
@@ -39,6 +42,7 @@ macro_rules! endian_define {
         )*
     };
 }
+/// Macro to implement endianess.
 macro_rules! endian_impl {
     ($name:ident, $short:ident, $($ty:ty),*) => {
         paste::paste! {

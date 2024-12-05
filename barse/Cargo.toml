@@ -12,7 +12,7 @@ readme = "./README.md"
 description = "Binary parsing library."
 
 [features]
-default = ["derive"]
+default = ["derive", "std"]
 derive = ["dep:barse-derive"]
 std = []
 
