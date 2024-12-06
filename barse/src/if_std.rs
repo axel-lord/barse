@@ -33,7 +33,7 @@ where
             type Err = io::Error;
 
             #[inline(always)]
-            fn read_bytes(&mut self, buf: &mut [u8]) -> Result<(), Self::Err> {
+            fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err> {
                 self.0.read_exact(buf)
             }
         }
@@ -59,7 +59,7 @@ where
             type Err = io::Error;
 
             #[inline(always)]
-            fn write_bytes(&mut self, buf: &[u8]) -> Result<(), Self::Err> {
+            fn write_slice(&mut self, buf: &[u8]) -> Result<(), Self::Err> {
                 self.0.write_all(buf)
             }
         }

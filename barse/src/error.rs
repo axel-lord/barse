@@ -32,11 +32,21 @@ where
     }
 }
 
-impl<E> ::core::error::Error for Error<E> where E: ::core::error::Error {}
+impl<E> ::core::error::Error for Error<E>
+where
+    E: 'static + ::core::error::Error,
+{
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        if let Self::Wrapped(err) = self {
+            Some(err)
+        } else {
+            None
+        }
+    }
+}
 
 impl<E> From<E> for Error<E> {
     fn from(value: E) -> Self {
         Self::Wrapped(value)
     }
 }
-
