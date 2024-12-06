@@ -25,6 +25,8 @@ pub use if_std::{AsByteSink, AsByteSource};
 
 pub mod endian;
 
+pub mod util;
+
 /// Source of bytes for reading.
 pub trait ByteSource {
     /// Error reported by source.
@@ -34,16 +36,16 @@ pub trait ByteSource {
     ///
     /// # Errors
     /// If source cannot fill buffer, or otherwise fails.
-    fn read_bytes(&mut self, buf: &mut [u8]) -> Result<(), Self::Err>;
+    fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err>;
 
     /// Read an array of bytes.
     ///
     /// # Errors
     /// If N bytes cannot be read from source.
     #[inline(always)]
-    fn read<const N: usize>(&mut self) -> Result<[u8; N], Self::Err> {
+    fn read_array<const N: usize>(&mut self) -> Result<[u8; N], Self::Err> {
         let mut bytes = [0u8; N];
-        self.read_bytes(&mut bytes)?;
+        self.read_slice(&mut bytes)?;
         Ok(bytes)
     }
 }
@@ -57,14 +59,14 @@ pub trait ByteSink {
     ///
     /// # Errors
     /// If bytes cannot be written or sink otherwise fails.
-    fn write_bytes(&mut self, buf: &[u8]) -> Result<(), Self::Err>;
+    fn write_slice(&mut self, buf: &[u8]) -> Result<(), Self::Err>;
 
     /// Write an array of bytes.
     ///
     /// # Errors
     /// If bytes cannot be written or sink otherwise fails.
     #[inline(always)]
-    fn write<const N: usize>(&mut self, bytes: [u8; N]) -> Result<(), Self::Err> {
-        self.write_bytes(&bytes)
+    fn write_array<const N: usize>(&mut self, bytes: [u8; N]) -> Result<(), Self::Err> {
+        self.write_slice(&bytes)
     }
 }

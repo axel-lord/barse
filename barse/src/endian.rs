@@ -2,7 +2,7 @@
 
 use crate::sealed::Sealed;
 
-endian_trait!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+endian_trait!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 
 /// Macro to generate endian trait and impls.
 macro_rules! endian_trait {
@@ -11,12 +11,12 @@ macro_rules! endian_trait {
         #[doc = "Trait defining endianess, [Big], [Little] and [Native] is available."]
         pub trait Endian: Sealed {
             $(
-            #[doc = concat!("Read a value from and array of bytes.")]
+            #[doc = concat!("Convert bytes to ", stringify!($ty)," value.")]
             fn [< $ty _from_bytes >](bytes: [u8; size_of::<$ty>()]) -> $ty;
             )*
 
             $(
-            #[doc = concat!("Read a value from and array of bytes.")]
+            #[doc = concat!("Convert ", stringify!($ty)," value to bytes.")]
             fn [< $ty _to_bytes >](value: $ty) -> [u8; size_of::<$ty>()];
             )*
         }
