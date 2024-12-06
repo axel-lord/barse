@@ -5,6 +5,10 @@ mod error;
 
 mod barse;
 
+mod byte_source;
+
+mod byte_sink;
+
 #[cfg(feature = "std")]
 mod if_std;
 
@@ -15,7 +19,7 @@ mod sealed {
     pub trait Sealed {}
 }
 
-pub use self::{barse::Barse, error::Error};
+pub use self::{barse::Barse, byte_sink::ByteSink, byte_source::ByteSource, error::Error};
 
 #[doc(inline)]
 pub use self::endian::Endian;
@@ -27,46 +31,8 @@ pub mod endian;
 
 pub mod util;
 
-/// Source of bytes for reading.
-pub trait ByteSource {
-    /// Error reported by source.
-    type Err;
+pub mod prelude {
+    //! Crate prelude, gives access to needed traits.
 
-    /// Try to fill buf with bytes.
-    ///
-    /// # Errors
-    /// If source cannot fill buffer, or otherwise fails.
-    fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err>;
-
-    /// Read an array of bytes.
-    ///
-    /// # Errors
-    /// If N bytes cannot be read from source.
-    #[inline(always)]
-    fn read_array<const N: usize>(&mut self) -> Result<[u8; N], Self::Err> {
-        let mut bytes = [0u8; N];
-        self.read_slice(&mut bytes)?;
-        Ok(bytes)
-    }
-}
-
-/// Sink for writing of bytes.
-pub trait ByteSink {
-    /// Error reported by sink.
-    type Err;
-
-    /// Try to write buf to sink.
-    ///
-    /// # Errors
-    /// If bytes cannot be written or sink otherwise fails.
-    fn write_slice(&mut self, buf: &[u8]) -> Result<(), Self::Err>;
-
-    /// Write an array of bytes.
-    ///
-    /// # Errors
-    /// If bytes cannot be written or sink otherwise fails.
-    #[inline(always)]
-    fn write_array<const N: usize>(&mut self, bytes: [u8; N]) -> Result<(), Self::Err> {
-        self.write_slice(&bytes)
-    }
+    pub use crate::{AsByteSink, AsByteSource, ByteSink, ByteSource};
 }
