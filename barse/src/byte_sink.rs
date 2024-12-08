@@ -1,6 +1,10 @@
 //! [ByteSink] trait.
 
-use crate::{error::Error, Barse, Endian};
+use crate::{
+    endian::{Big, Little, Native},
+    error::Error,
+    Barse, Endian,
+};
 
 /// Sink for writing of bytes.
 pub trait ByteSink: Sized {
@@ -30,6 +34,33 @@ pub trait ByteSink: Sized {
     fn write<T: Barse, E: Endian>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
         T::write::<E, Self>(value, self)
     }
+
+    /// Write a value implementing [Barse] using little endian.
+    ///
+    /// # Errors
+    /// If source or implementation errors.
+    #[inline(always)]
+    fn write_le<T: Barse>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
+        Self::write::<T, Little>(self, value)
+    }
+
+    /// Write a value implementing [Barse] using big endian.
+    ///
+    /// # Errors
+    /// If source or implementation errors.
+    #[inline(always)]
+    fn write_be<T: Barse>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
+        Self::write::<T, Big>(self, value)
+    }
+
+    /// Write a value implementing [Barse] using native endian.
+    ///
+    /// # Errors
+    /// If source or implementation errors.
+    #[inline(always)]
+    fn write_ne<T: Barse>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
+        Self::write::<T, Native>(self, value)
+    }
 }
 
 impl<Sink> ByteSink for &mut Sink
@@ -52,5 +83,19 @@ where
     fn write<T: Barse, E: Endian>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
         Sink::write::<T, E>(self, value)
     }
-}
 
+    #[inline(always)]
+    fn write_le<T: Barse>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
+        Sink::write_le(self, value)
+    }
+
+    #[inline(always)]
+    fn write_be<T: Barse>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
+        Sink::write_be(self, value)
+    }
+
+    #[inline(always)]
+    fn write_ne<T: Barse>(&mut self, value: &T) -> Result<(), Error<Self::Err>> {
+        Sink::write_ne(self, value)
+    }
+}

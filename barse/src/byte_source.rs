@@ -1,6 +1,10 @@
 //! [ByteSource] trait.
 
-use crate::{endian::Little, error::Error, Barse, Endian};
+use crate::{
+    endian::{Big, Little, Native},
+    error::Error,
+    Barse, Endian,
+};
 
 /// Source of bytes for reading.
 pub trait ByteSource: Sized {
@@ -24,6 +28,16 @@ pub trait ByteSource: Sized {
         Ok(bytes)
     }
 
+    /// Read a single byte.
+    ///
+    /// # Errors
+    /// If the byte cannot be read from source.
+    #[inline(always)]
+    fn read_byte(&mut self) -> Result<u8, Self::Err> {
+        let [byte] = self.read_array()?;
+        Ok(byte)
+    }
+
     /// Read a value implementing [Barse] using given endian.
     ///
     /// # Errors
@@ -38,8 +52,26 @@ pub trait ByteSource: Sized {
     /// # Errors
     /// If source or barse implementation errors.
     #[inline(always)]
-    fn read_little<T: Barse>(&mut self) -> Result<T, Error<Self::Err>> {
+    fn read_le<T: Barse>(&mut self) -> Result<T, Error<Self::Err>> {
         Self::read::<T, Little>(self)
+    }
+
+    /// Read a value implementing [Barse] using big endian.
+    ///
+    /// # Errors
+    /// If source or barse implementation errors.
+    #[inline(always)]
+    fn read_be<T: Barse>(&mut self) -> Result<T, Error<Self::Err>> {
+        Self::read::<T, Big>(self)
+    }
+
+    /// Read a value implementing [Barse] using native endian.
+    ///
+    /// # Errors
+    /// If source or barse implementation errors.
+    #[inline(always)]
+    fn read_ne<T: Barse>(&mut self) -> Result<T, Error<Self::Err>> {
+        Self::read::<T, Native>(self)
     }
 }
 
@@ -60,8 +92,27 @@ where
     }
 
     #[inline(always)]
+    fn read_byte(&mut self) -> Result<u8, Self::Err> {
+        Src::read_byte(self)
+    }
+
+    #[inline(always)]
     fn read<T: Barse, E: Endian>(&mut self) -> Result<T, Error<Self::Err>> {
         Src::read::<T, E>(self)
     }
-}
 
+    #[inline(always)]
+    fn read_le<T: Barse>(&mut self) -> Result<T, Error<Self::Err>> {
+        Src::read_le(self)
+    }
+
+    #[inline(always)]
+    fn read_be<T: Barse>(&mut self) -> Result<T, Error<Self::Err>> {
+        Src::read_be(self)
+    }
+
+    #[inline(always)]
+    fn read_ne<T: Barse>(&mut self) -> Result<T, Error<Self::Err>> {
+        Src::read_ne(self)
+    }
+}
