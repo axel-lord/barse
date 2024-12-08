@@ -34,5 +34,8 @@ pub mod util;
 pub mod prelude {
     //! Crate prelude, gives access to needed traits.
 
-    pub use crate::{AsByteSink, AsByteSource, ByteSink, ByteSource};
+    #[cfg(feature = "std")]
+    pub use crate::{AsByteSink, AsByteSource};
+
+    pub use crate::{ByteSink, ByteSource};
 }
