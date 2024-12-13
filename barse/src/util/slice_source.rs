@@ -46,4 +46,3 @@ impl ByteSource for SliceSrc<'_> {
         Ok(())
     }
 }
-

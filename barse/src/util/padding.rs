@@ -32,4 +32,3 @@ impl<const N: usize, const BYTE: u8> Barse for Padding<N, BYTE> {
         Ok(())
     }
 }
-

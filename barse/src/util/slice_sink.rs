@@ -47,4 +47,3 @@ impl ByteSink for SliceSink<'_> {
         Ok(())
     }
 }
-
