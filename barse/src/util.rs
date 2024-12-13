@@ -18,6 +18,8 @@ mod slice_source;
 
 mod slice_sink;
 
+pub mod with_endian;
+
 #[cfg(feature = "zerocopy")]
 pub mod zerocopy;
 

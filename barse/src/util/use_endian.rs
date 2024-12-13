@@ -6,6 +6,7 @@ use crate::{Barse, Endian};
 
 /// Always read/write wrapped value with given endian.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct UseEndian<T, E>(T, PhantomData<fn() -> E>);
 
 impl<T, E> UseEndian<T, E>
