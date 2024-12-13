@@ -14,4 +14,3 @@ impl ByteSink for alloc::vec::Vec<u8> {
         Ok(())
     }
 }
-
