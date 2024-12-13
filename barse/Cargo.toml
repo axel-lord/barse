@@ -14,7 +14,8 @@ description = "Binary parsing library."
 [features]
 default = []
 derive = ["dep:barse-derive"]
-std = ["thiserror/std"]
+std = ["thiserror/std", "alloc"]
+alloc = []
 
 [dependencies]
 barse-derive = { path = "../barse-derive", version = "0.5.0", optional = true }
