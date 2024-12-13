@@ -8,6 +8,7 @@ use crate::Barse;
 ///
 /// Endianess will be platform specific ([Native][crate::endian::Native]) in all cases.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct UseAnyBitPattern<T>(T);
 
 impl<T> UseAnyBitPattern<T>
@@ -15,11 +16,13 @@ where
     T: AnyBitPattern + NoUninit + Barse,
 {
     /// Construct a new [UseAnyBitPattern] from a value.
+    #[inline(always)]
     pub const fn new(value: T) -> Self {
         Self(value)
     }
 
     /// Unwrap [UseAnyBitPattern] to wrapped value.
+    #[inline(always)]
     pub const fn into_inner(self) -> T {
         let Self(value) = self;
         value
@@ -33,6 +36,7 @@ where
     type ReadWith = ();
     type WriteWith = ();
 
+    #[inline(always)]
     fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::Error<B::Err>>
     where
         E: crate::Endian,
@@ -45,6 +49,7 @@ where
         Ok(Self(value))
     }
 
+    #[inline(always)]
     fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::Error<B::Err>>
     where
         E: crate::Endian,

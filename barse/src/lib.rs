@@ -9,6 +9,8 @@ mod byte_source;
 
 mod byte_sink;
 
+mod ext;
+
 #[cfg(feature = "std")]
 mod if_std;
 
@@ -36,8 +38,6 @@ pub use if_std::{AsByteSink, AsByteSource};
 pub mod endian;
 
 pub mod util;
-
-pub mod ext;
 
 pub mod prelude {
     //! Crate prelude, gives access to needed traits.

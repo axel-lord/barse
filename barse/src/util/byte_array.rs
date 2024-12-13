@@ -4,6 +4,7 @@ use crate::Barse;
 
 /// Byte array wrapper with specialized barse read/write impl.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct ByteArray<const N: usize>([u8; N]);
 
 impl<const N: usize> ByteArray<N> {
