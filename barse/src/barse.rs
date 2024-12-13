@@ -4,11 +4,17 @@ use crate::{ByteSink, ByteSource, Endian, Error};
 
 /// Trait to serialize and deserialize from binary data.
 pub trait Barse: Sized {
+    /// Additional data needed to read.
+    type ReadWith;
+
+    /// Additional data needed to write.
+    type WriteWith;
+
     /// Read an instnce from source with given endianess.
     ///
     /// # Errors
     /// If Soure or implementation errors.
-    fn read<E, B>(from: &mut B) -> Result<Self, Error<B::Err>>
+    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, Error<B::Err>>
     where
         E: Endian,
         B: ByteSource;
@@ -17,7 +23,7 @@ pub trait Barse: Sized {
     ///
     /// # Errors
     /// If Sink or implementation errors.
-    fn write<E, B>(&self, to: &mut B) -> Result<(), Error<B::Err>>
+    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), Error<B::Err>>
     where
         E: Endian,
         B: ByteSink;
@@ -25,29 +31,34 @@ pub trait Barse: Sized {
 
 integer_impl!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 
-impl<T, const N: usize> Barse for [T; N]
+impl<T, ReadWith, WriteWith, const N: usize> Barse for [T; N]
 where
-    T: Barse,
+    T: Barse<ReadWith = ReadWith, WriteWith = WriteWith>,
+    ReadWith: Clone,
+    WriteWith: Clone,
 {
-    fn read<E, B>(from: &mut B) -> Result<Self, Error<B::Err>>
+    type ReadWith = ReadWith;
+    type WriteWith = WriteWith;
+
+    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, Error<B::Err>>
     where
         E: Endian,
         B: ByteSource,
     {
         let mut values = [const { None }; N];
         for value in values.iter_mut() {
-            *value = Some(T::read::<E, B>(from)?);
+            *value = Some(T::read::<E, B>(from, with.clone())?);
         }
         Ok(values.map(|value| value.expect("all values should be some")))
     }
 
-    fn write<E, B>(&self, to: &mut B) -> Result<(), Error<B::Err>>
+    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), Error<B::Err>>
     where
         E: Endian,
         B: ByteSink,
     {
         for value in self {
-            T::write::<E, B>(value, to)?;
+            T::write::<E, B>(value, to, with.clone())?;
         }
         Ok(())
     }
@@ -59,8 +70,10 @@ macro_rules! integer_impl {
         $(
         paste::paste! {
         impl Barse for $ty {
+            type ReadWith = ();
+            type WriteWith = ();
             #[inline(always)]
-            fn read<E, B>(from: &mut B) -> Result<Self, Error<B::Err>>
+            fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, Error<B::Err>>
             where
                 E: Endian,
                 B: ByteSource,
@@ -69,7 +82,7 @@ macro_rules! integer_impl {
             }
 
             #[inline(always)]
-            fn write<E, B>(&self, to: &mut B) -> Result<(), Error<B::Err>>
+            fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), Error<B::Err>>
             where
                 E: Endian,
                 B: ByteSink

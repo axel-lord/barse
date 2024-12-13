@@ -19,7 +19,13 @@ mod sealed {
     pub trait Sealed {}
 }
 
-pub use self::{barse::Barse, byte_sink::ByteSink, byte_source::ByteSource, error::Error};
+pub use self::{
+    barse::Barse,
+    byte_sink::ByteSink,
+    byte_source::ByteSource,
+    error::Error,
+    ext::{ByteSinkExt, ByteSourceExt},
+};
 
 #[doc(inline)]
 pub use self::endian::Endian;
@@ -31,11 +37,13 @@ pub mod endian;
 
 pub mod util;
 
+pub mod ext;
+
 pub mod prelude {
     //! Crate prelude, gives access to needed traits.
 
     #[cfg(feature = "std")]
     pub use crate::{AsByteSink, AsByteSource};
 
-    pub use crate::{ByteSink, ByteSource};
+    pub use crate::{ByteSink, ByteSinkExt, ByteSource, ByteSourceExt};
 }
