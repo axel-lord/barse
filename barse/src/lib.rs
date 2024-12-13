@@ -14,6 +14,9 @@ mod ext;
 #[cfg(feature = "std")]
 mod if_std;
 
+#[cfg(feature = "alloc")]
+mod if_alloc;
+
 mod sealed {
     //! [Sealed] trait.
 

@@ -1,6 +1,6 @@
 //! Trait implementations and types used with std feature.
 
-use ::std::io::{self, Read, Write};
+use ::std::io::{self, Cursor, Read, Write};
 
 use crate::{ByteSink, ByteSource};
 
@@ -67,5 +67,17 @@ where
     #[inline(always)]
     fn as_byte_sink(&mut self) -> impl '_ + ByteSink {
         Writer(self)
+    }
+}
+
+impl<A> ByteSource for Cursor<A>
+where
+    A: AsRef<[u8]>,
+{
+    type Err = ::std::io::Error;
+
+    #[inline(always)]
+    fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err> {
+        self.read_exact(buf)
     }
 }
