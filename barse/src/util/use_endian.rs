@@ -32,21 +32,24 @@ where
     T: Barse,
     E: Endian,
 {
+    type ReadWith = T::ReadWith;
+    type WriteWith = T::WriteWith;
+
     #[inline(always)]
-    fn read<_E, B>(from: &mut B) -> Result<Self, crate::Error<B::Err>>
+    fn read<_E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, crate::Error<B::Err>>
     where
         _E: Endian,
         B: crate::ByteSource,
     {
-        T::read::<E, B>(from).map(Self::new)
+        T::read::<E, B>(from, with).map(Self::new)
     }
 
     #[inline(always)]
-    fn write<_E, B>(&self, to: &mut B) -> Result<(), crate::Error<B::Err>>
+    fn write<_E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), crate::Error<B::Err>>
     where
         _E: Endian,
         B: crate::ByteSink,
     {
-        T::write::<E, B>(&self.0, to)
+        T::write::<E, B>(&self.0, to, with)
     }
 }

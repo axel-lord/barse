@@ -30,7 +30,10 @@ impl<T> Barse for UseAnyBitPattern<T>
 where
     T: AnyBitPattern + NoUninit,
 {
-    fn read<E, B>(from: &mut B) -> Result<Self, crate::Error<B::Err>>
+    type ReadWith = ();
+    type WriteWith = ();
+
+    fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::Error<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSource,
@@ -42,7 +45,7 @@ where
         Ok(Self(value))
     }
 
-    fn write<E, B>(&self, to: &mut B) -> Result<(), crate::Error<B::Err>>
+    fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::Error<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSink,

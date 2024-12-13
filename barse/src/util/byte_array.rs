@@ -21,8 +21,11 @@ impl<const N: usize> ByteArray<N> {
 }
 
 impl<const N: usize> Barse for ByteArray<N> {
+    type ReadWith = ();
+    type WriteWith = ();
+
     #[inline(always)]
-    fn read<E, B>(from: &mut B) -> Result<Self, crate::Error<B::Err>>
+    fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::Error<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSource,
@@ -31,7 +34,7 @@ impl<const N: usize> Barse for ByteArray<N> {
     }
 
     #[inline(always)]
-    fn write<E, B>(&self, to: &mut B) -> Result<(), crate::Error<B::Err>>
+    fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::Error<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSink,
@@ -39,4 +42,3 @@ impl<const N: usize> Barse for ByteArray<N> {
         Ok(to.write_array(self.0)?)
     }
 }
-
