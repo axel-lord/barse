@@ -1,5 +1,5 @@
 [workspace]
-members = ["barse", "barse-derive", "barse-derive-impl"]
+members = ["barse", "barse-derive", "barse-derive-impl", "tests"]
 resolver = "2"
 
 [workspace.lints.rust]
