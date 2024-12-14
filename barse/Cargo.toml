@@ -12,9 +12,13 @@ readme = "./README.md"
 description = "Binary parsing library."
 
 [features]
-default = []
+default = ["util", "ext"]
+util = []
+ext = []
 derive = ["dep:barse-derive"]
 std = ["thiserror/std", "alloc"]
+zerocopy = ["dep:zerocopy"]
+bytemuck = ["dep:bytemuck"]
 alloc = []
 
 [dependencies]

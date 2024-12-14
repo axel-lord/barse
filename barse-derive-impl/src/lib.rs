@@ -1,6 +1,9 @@
-#[doc = include_str!("../README.md")]
+#![doc = include_str!("../README.md")]
+
 use ::proc_macro2::TokenStream;
 use ::syn::{spanned::Spanned, DataEnum, DataStruct, DeriveInput, ItemEnum, ItemStruct};
+
+use crate::{barse_enum::derive_barse_enum, barse_struct::derive_barse_struct};
 
 /// Derive barse for a struct or enum.
 pub fn derive_barse(item: TokenStream) -> TokenStream {
@@ -9,6 +12,10 @@ pub fn derive_barse(item: TokenStream) -> TokenStream {
         .unwrap_or_else(::syn::Error::into_compile_error)
 }
 
+/// Split up derive input based on kind of type.
+///
+/// # Errors
+/// Should derive not be possible.
 fn derive_barse_impl(derive_input: DeriveInput) -> Result<TokenStream, ::syn::Error> {
     let DeriveInput {
         attrs,
@@ -51,10 +58,6 @@ fn derive_barse_impl(derive_input: DeriveInput) -> Result<TokenStream, ::syn::Er
     }
 }
 
-fn derive_barse_enum(_item: ItemEnum) -> Result<TokenStream, ::syn::Error> {
-    todo!()
-}
+mod barse_enum;
 
-fn derive_barse_struct(_item: ItemStruct) -> Result<TokenStream, ::syn::Error> {
-    todo!()
-}
+mod barse_struct;

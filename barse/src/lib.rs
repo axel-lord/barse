@@ -9,6 +9,7 @@ mod byte_source;
 
 mod byte_sink;
 
+#[cfg(feature = "ext")]
 mod ext;
 
 #[cfg(feature = "std")]
@@ -24,29 +25,39 @@ mod sealed {
     pub trait Sealed {}
 }
 
-pub use self::{
-    barse::Barse,
-    byte_sink::ByteSink,
-    byte_source::ByteSource,
-    error::Error,
-    ext::{ByteSinkExt, ByteSourceExt},
-};
+pub use self::{barse::Barse, byte_sink::ByteSink, byte_source::ByteSource, error::Error};
+
+#[cfg(feature = "ext")]
+pub use self::ext::{ByteSinkExt, ByteSourceExt};
 
 #[doc(inline)]
 pub use self::endian::Endian;
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "ext"))]
 pub use if_std::{AsByteSink, AsByteSource};
+
+#[cfg(feature = "derive")]
+pub use barse_derive::Barse;
 
 pub mod endian;
 
+#[cfg(feature = "util")]
 pub mod util;
+
+#[cfg(feature = "zerocopy")]
+pub mod zerocopy;
+
+#[cfg(feature = "bytemuck")]
+pub mod bytemuck;
 
 pub mod prelude {
     //! Crate prelude, gives access to needed traits.
 
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "ext"))]
     pub use crate::{AsByteSink, AsByteSource};
 
-    pub use crate::{ByteSink, ByteSinkExt, ByteSource, ByteSourceExt};
+    pub use crate::{ByteSink, ByteSource};
+
+    #[cfg(feature = "ext")]
+    pub use crate::{ByteSinkExt, ByteSourceExt};
 }

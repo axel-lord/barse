@@ -1,0 +1,13 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Axel Lord"]
+
+[dev-dependencies]
+barse = { path = "../barse/", features = ["std", "derive"] }
+
+[[test]]
+name = "test_derive_struct"
+path = "test_derive_struct.rs"
