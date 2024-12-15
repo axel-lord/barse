@@ -11,6 +11,8 @@ use crate::barse_struct::struct_config::StructConfig;
 
 mod struct_config;
 
+mod field_config;
+
 /// Derive barse for a struct.
 ///
 /// # Errors
@@ -23,7 +25,11 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         error_path,
         endian_path,
         where_clause,
-    } = StructConfig::parse_attrs(&item.attrs)?;
+        with,
+        read_with,
+        write_with,
+        field_prefix,
+    } = StructConfig::from_attrs(&item.attrs)?;
     let name = &item.ident;
 
     let r = ::rand::random::<u32>();
@@ -58,6 +64,10 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         }
     }
 
+    let read_body = item.fields.iter().map(|field| {
+
+    });
+
     let (impl_generics, ty_generics, split_where_clause) = item.generics.split_for_impl();
     let where_clause = where_clause.as_ref().or(split_where_clause);
 
@@ -65,14 +75,24 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
     let b = format_ident!("__B_{r:X}");
     let to = format_ident!("__to_{r:x}");
     let from = format_ident!("__from_{r:x}");
-    let with = format_ident!("__with_{r:x}");
+
+    let with = with.unwrap_or_else(|| {
+        let with = format_ident!("__with_{r:x}");
+        parse_quote!(#with: ())
+    });
+
+    let read_with = read_with.as_ref().unwrap_or(&with);
+    let write_with = write_with.as_ref().unwrap_or(&with);
+
+    let read_with_ty = &read_with.ty;
+    let write_with_ty = &write_with.ty;
 
     Ok(quote! {
         impl #impl_generics #barse_path for #name #ty_generics #where_clause {
-            type ReadWith = ();
-            type WriteWith = ();
+            type ReadWith = #read_with_ty;
+            type WriteWith = #write_with_ty;
 
-            fn read<#e, #b>(#from: &mut #b, #with: Self::ReadWith) -> ::core::result::Result<Self, #error_path::<#b::Err>>
+            fn read<#e, #b>(#from: &mut #b, #read_with) -> ::core::result::Result<Self, #error_path::<#b::Err>>
             where
                 #e: #endian_path,
                 #b: #byte_source_path,
@@ -80,7 +100,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 todo!()
             }
 
-            fn write<#e, #b>(&self, #to: &mut #b, #with: Self::WriteWith) -> ::core::result::Result<(), #error_path::<#b::Err>>
+            fn write<#e, #b>(&self, #to: &mut #b, #write_with) -> ::core::result::Result<(), #error_path::<#b::Err>>
             where
                 #e: #endian_path,
                 #b: #byte_sink_path,
