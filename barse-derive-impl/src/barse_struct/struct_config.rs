@@ -2,9 +2,40 @@
 
 use ::quote::ToTokens;
 use ::syn::{
-    meta::ParseNestedMeta, parenthesized, parse_quote, parse_quote_spanned, punctuated::Punctuated,
-    spanned::Spanned, Attribute, Token, WhereClause, WherePredicate,
+    meta::ParseNestedMeta, parenthesized, parse::Parse, parse_quote, parse_quote_spanned,
+    punctuated::Punctuated, spanned::Spanned, Attribute, Ident, Token, WhereClause, WherePredicate,
 };
+
+/// With pattern.
+#[derive(Debug)]
+pub struct WithPat {
+    /// Pattern to bind with type to.
+    pub pat: ::syn::Pat,
+
+    /// Colon separating pattern and type.
+    pub colon_token: Token![:],
+
+    /// Type of with value.
+    pub ty: ::syn::Type,
+}
+
+impl Parse for WithPat {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            pat: ::syn::Pat::parse_single(input)?,
+            colon_token: input.parse()?,
+            ty: input.parse()?,
+        })
+    }
+}
+
+impl ToTokens for WithPat {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        self.pat.to_tokens(tokens);
+        self.colon_token.to_tokens(tokens);
+        self.ty.to_tokens(tokens);
+    }
+}
 
 /// Struct-wide configuration of barse, determined by attributes.
 #[derive(Debug)]
@@ -26,6 +57,18 @@ pub struct StructConfig {
 
     /// Manual where clause.
     pub where_clause: Option<::syn::WhereClause>,
+
+    /// With pattern.
+    pub with: Option<WithPat>,
+
+    /// ReadWith pattern.
+    pub read_with: Option<WithPat>,
+
+    /// WriteWith pattern.
+    pub write_with: Option<WithPat>,
+
+    /// field_prefix.
+    pub field_prefix: Option<Ident>,
 }
 
 /// Parse a path config value.
@@ -58,17 +101,21 @@ fn parse_path(
 }
 
 impl StructConfig {
-    /// Parse struct attributes.
+    /// Get config from struct attributes.
     ///
     /// # Errors
     /// If any invalid barse attributes are encountered.
-    pub fn parse_attrs(attrs: &[Attribute]) -> Result<Self, ::syn::Error> {
+    pub fn from_attrs(attrs: &[Attribute]) -> Result<Self, ::syn::Error> {
         let mut barse_path: Option<::syn::Path> = None;
         let mut byte_source_path: Option<::syn::Path> = None;
         let mut byte_sink_path: Option<::syn::Path> = None;
         let mut error_path: Option<::syn::Path> = None;
         let mut endian_path: Option<::syn::Path> = None;
         let mut where_clause: Option<::syn::WhereClause> = None;
+        let mut with: Option<WithPat> = None;
+        let mut read_with: Option<WithPat> = None;
+        let mut write_with: Option<WithPat> = None;
+        let mut field_prefix: Option<Ident> = None;
 
         for attr in attrs {
             if !attr.path().is_ident("barse") {
@@ -97,6 +144,10 @@ impl StructConfig {
                 }
 
                 if meta.path.is_ident("where") {
+                    if where_clause.is_some() {
+                        return Err(meta.error("'where' has already been set"));
+                    }
+                    
                     let content;
                     parenthesized!(content in meta.input);
                     let predicates =
@@ -120,6 +171,52 @@ impl StructConfig {
                     return Ok(());
                 };
 
+                if meta.path.is_ident("with") {
+                    if with.is_some() {
+                        return Err(meta.error("'with' has already been set"));
+                    }
+                    if read_with.is_some() || write_with.is_some() {
+                        return Err(meta
+                            .error("'with' may not be combined with 'read_with' or 'write_with'"));
+                    }
+                    with = Some(meta.value()?.parse()?);
+                    return Ok(());
+                }
+
+                if meta.path.is_ident("write_with") {
+                    if write_with.is_some() {
+                        return Err(meta.error("'write_with' has already been set"));
+                    }
+                    if with.is_some() {
+                        return Err(meta
+                            .error("'with' may not be combined with 'read_with' or 'write_with'"));
+                    }
+                    write_with = Some(meta.value()?.parse()?);
+                    return Ok(());
+                }
+
+                if meta.path.is_ident("read_with") {
+                    if read_with.is_some() {
+                        return Err(meta.error("'read_with' has already been set"));
+                    }
+                    if with.is_some() {
+                        return Err(meta
+                            .error("'with' may not be combined with 'read_with' or 'write_with'"));
+                    }
+                    read_with = Some(meta.value()?.parse()?);
+                    return Ok(());
+                }
+
+                if meta.path.is_ident("field_prefix") {
+                    if field_prefix.is_some() {
+                        return Err(meta.error("'field_prefix' has already been set"));
+                    }
+
+                    field_prefix = Some(meta.value()?.parse()?);
+
+                    return Ok(());
+                }
+
                 Err(meta.error(format!(
                     "attribute '{}' is unknown/does not apply to structs",
                     meta.path.to_token_stream()
@@ -134,6 +231,10 @@ impl StructConfig {
             error_path: error_path.unwrap_or_else(|| parse_quote!(::barse::Error)),
             endian_path: endian_path.unwrap_or_else(|| parse_quote!(::barse::Endian)),
             where_clause,
+            with,
+            read_with,
+            write_with,
+            field_prefix,
         })
     }
 }
