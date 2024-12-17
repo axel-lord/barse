@@ -4,6 +4,7 @@
 use barse as barse2;
 
 #[derive(::barse::Barse)]
+#[barse(field_prefix = field_)]
 struct TestStruct {
     a: f32,
     b: i64,
