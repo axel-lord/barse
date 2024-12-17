@@ -112,20 +112,48 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
 
     let read_return = {
         let fields = fields.iter().map(|(field, _cfg, name)| {
-            field.ident.as_ref().map_or_else(
-                || {
-                    quote! { #name, }
-                },
-                |ident| {
-                    quote! { #ident: #name, }
-                },
-            )
+            field
+                .ident
+                .as_ref()
+                .filter(|&ident| ident != name)
+                .map_or_else(
+                    || {
+                        quote! { #name }
+                    },
+                    |ident| {
+                        quote! { #ident: #name }
+                    },
+                )
         });
 
         match item.fields {
-            ::syn::Fields::Named(_) => quote! {Ok(Self{#(#fields)*})},
-            ::syn::Fields::Unnamed(_) => quote! {Ok(Self(#(#fields)*))},
+            ::syn::Fields::Named(_) => quote! {Ok(Self{#(#fields),*})},
+            ::syn::Fields::Unnamed(_) => quote! {Ok(Self(#(#fields),*))},
             ::syn::Fields::Unit => quote! {Ok(Self)},
+        }
+    };
+
+    let write_body = fields
+        .iter()
+        .map(|(field, _cfg, name)| {
+            let ty = &field.ty;
+            quote! { <#ty as #barse_path>::write::<#e, #b>(#name, #to, ())?; }
+        })
+        .collect::<TokenStream>();
+
+    let write_prefix = {
+        let fields = fields.iter().map(|(field, _cfg, name)| {
+            field
+                .ident
+                .as_ref()
+                .filter(|&ident| ident != name)
+                .map_or_else(|| quote! { #name }, |ident| quote! { #ident: #name })
+        });
+
+        match item.fields {
+            ::syn::Fields::Named(_) => quote! { let Self { #(#fields),* } = self; },
+            ::syn::Fields::Unnamed(_) => quote! { let Self ( #(#fields),* ) = self; },
+            ::syn::Fields::Unit => TokenStream::default(),
         }
     };
 
@@ -162,7 +190,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 #e: #endian_path,
                 #b: #byte_sink_path,
             {
-                todo!()
+                #write_prefix
+                #write_body
+                Ok(())
             }
         }
     })
