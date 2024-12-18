@@ -1,9 +1,13 @@
 //! Struct Derive tests.
 #![allow(dead_code)]
 
-use barse as barse2;
+use ::barse::{
+    self as barse2,
+    util::{SliceSink, SliceSrc},
+    ByteSinkExt, ByteSourceExt,
+};
 
-#[derive(::barse::Barse)]
+#[derive(::barse::Barse, PartialEq, Debug)]
 #[barse(field_prefix = field_)]
 struct TestStruct {
     a: f32,
@@ -27,5 +31,18 @@ struct Wrap<T>(T);
 /// Entry
 #[test]
 fn basic() {
-    println!("hello")
+    let test_struct = TestStruct {
+        a: 5.6,
+        b: -15,
+        c: u64::MAX as u128 * 16,
+        d: *b"hello",
+    };
+
+    let mut buf = [0u8; size_of::<TestStruct>()];
+
+    SliceSink::new(&mut buf).write_be(&test_struct).unwrap();
+
+    let barsed_test_struct = SliceSrc::new(&buf).read_be::<TestStruct>().unwrap();
+
+    assert_eq!(test_struct, barsed_test_struct);
 }
