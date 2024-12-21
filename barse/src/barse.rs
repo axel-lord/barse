@@ -1,5 +1,7 @@
 //! [Barse] trait and implementations.
 
+use ::core::marker::PhantomData;
+
 use crate::{ByteSink, ByteSource, Endian, Error};
 
 /// Trait to serialize and deserialize from binary data.
@@ -60,6 +62,48 @@ where
         for value in self {
             T::write::<E, B>(value, to, with.clone())?;
         }
+        Ok(())
+    }
+}
+
+impl Barse for () {
+    type ReadWith = ();
+
+    type WriteWith = ();
+
+    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, Error<B::Err>>
+    where
+        E: Endian,
+        B: ByteSource,
+    {
+        Ok(())
+    }
+
+    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), Error<B::Err>>
+    where
+        E: Endian,
+        B: ByteSink,
+    {
+        Ok(())
+    }
+}
+
+impl <T> Barse for PhantomData<T> {
+    type ReadWith = ();
+
+    type WriteWith = ();
+
+    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, Error<B::Err>>
+    where
+        E: Endian,
+        B: ByteSource {
+            Ok(PhantomData)
+    }
+
+    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), Error<B::Err>>
+    where
+        E: Endian,
+        B: ByteSink {
         Ok(())
     }
 }

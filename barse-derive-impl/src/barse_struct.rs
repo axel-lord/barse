@@ -3,11 +3,13 @@
 use ::proc_macro2::TokenStream;
 use ::quote::{format_ident, quote};
 use ::syn::{
-    parse_quote, punctuated::Punctuated, GenericParam, Generics, ItemStruct, PredicateType,
-    TypeParamBound, WhereClause,
+    parse_quote, punctuated::Punctuated, GenericParam, Generics, ItemStruct, Token, WhereClause,
 };
 
-use crate::barse_struct::{field_config::FieldConfig, struct_config::StructConfig};
+use crate::{
+    barse_struct::{field_config::FieldConfig, struct_config::StructConfig},
+    Either,
+};
 
 mod struct_config;
 
@@ -23,65 +25,46 @@ mod field_config;
 pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::Error> {
     let StructConfig {
         barse_path,
-        byte_sink_path,
-        byte_source_path,
-        error_path,
-        endian_path,
         where_clause,
         with,
         read_with,
         write_with,
         field_prefix,
+        endian,
     } = StructConfig::from_attrs(&item.attrs)?;
+
     let name = &item.ident;
     let field_prefix = field_prefix.or_else(|| match item.fields {
         ::syn::Fields::Unnamed(_) => Some(format_ident!("_")),
         ::syn::Fields::Named(_) | ::syn::Fields::Unit => None,
     });
+    let barse_path = barse_path.unwrap_or_else(|| parse_quote!(::barse));
 
     let r = ::rand::random::<u32>();
 
-    if where_clause.is_none() {
-        let Generics {
-            params,
-            where_clause,
-            ..
-        } = &mut item.generics;
-        for param in params {
-            let GenericParam::Type(param) = param else {
-                continue;
-            };
-            let where_clause = where_clause.get_or_insert_with(|| WhereClause {
-                where_token: Default::default(),
-                predicates: Punctuated::new(),
-            });
-
-            let ident = &param.ident;
-
-            where_clause
-                .predicates
-                .push(::syn::WherePredicate::Type(PredicateType {
-                    lifetimes: None,
-                    bounded_ty: parse_quote!(#ident),
-                    colon_token: Default::default(),
-                    bounds: [TypeParamBound::Trait(parse_quote!(#barse_path))]
-                        .into_iter()
-                        .collect(),
-                }));
-        }
-    }
-
     let e = format_ident!("__E_{r:X}");
     let b = format_ident!("__B_{r:X}");
+    let w = format_ident!("__with_{r:x}");
     let to = format_ident!("__to_{r:x}");
     let from = format_ident!("__from_{r:x}");
+
+    let with = with.unwrap_or_else(|| parse_quote!(#w: ()));
+    let read_with = read_with
+        .unwrap_or_else(|| with.clone())
+        .ensure_pat(|| w.clone());
+    let write_with = write_with
+        .unwrap_or_else(|| with.clone())
+        .ensure_pat(|| w.clone());
+
+    let read_with_ty = &read_with.ty;
+    let write_with_ty = &write_with.ty;
 
     let fields = item
         .fields
         .iter()
         .enumerate()
         .map(|(i, field)| {
-            let cfg = FieldConfig::from_attrs(&field.attrs);
+            let cfg = FieldConfig::from_attrs(&field.attrs)?;
             let name = field.ident.as_ref().map_or_else(
                 || {
                     field_prefix.as_ref().map_or_else(
@@ -96,16 +79,30 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     )
                 },
             );
-            (field, cfg, name)
+            Ok((field, cfg, name))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, ::syn::Error>>()?;
 
     let read_body = fields
         .iter()
-        .map(|(field, _cfg, name)| {
-            let ty = &field.ty;
-            quote! {
-                let #name = <#ty as #barse_path>::read::<#e, #b>(#from, ())?;
+        .map(|(field, cfg, name)| {
+            if let Some(ignore) = &cfg.ignore {
+                let expr = ignore.value.as_ref().map_or_else(
+                    || Either::A(quote! { ::core::default::Default::default() }),
+                    |value| Either::B(&value.value),
+                );
+
+                quote! {
+                    let #name = #expr;
+                }
+            } else {
+                let ty = &field.ty;
+                let with_pat = &read_with.pat;
+                let e = endian.as_ref().map_or_else(|| Either::A(&e), Either::B);
+
+                quote! {
+                    let #name = <#ty as #barse_path::Barse>::read::<#e, #b>(#from, #with_pat)?;
+                }
             }
         })
         .collect::<TokenStream>();
@@ -135,9 +132,15 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
 
     let write_body = fields
         .iter()
-        .map(|(field, _cfg, name)| {
-            let ty = &field.ty;
-            quote! { <#ty as #barse_path>::write::<#e, #b>(#name, #to, ())?; }
+        .map(|(field, cfg, name)| {
+            if cfg.ignore.is_some() {
+                quote! { _ = #name; }
+            } else {
+                let ty = &field.ty;
+                let with_pat = &write_with.pat;
+                let e = endian.as_ref().map_or_else(|| Either::A(&e), Either::B);
+                quote! { <#ty as #barse_path::Barse>::write::<#e, #b>(#name, #to, #with_pat)?; }
+            }
         })
         .collect::<TokenStream>();
 
@@ -157,38 +160,54 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         }
     };
 
+    if where_clause.is_none() {
+        let Generics {
+            params,
+            where_clause,
+            ..
+        } = &mut item.generics;
+        for param in params {
+            let GenericParam::Type(param) = param else {
+                continue;
+            };
+            let where_clause = where_clause.get_or_insert_with(|| WhereClause {
+                where_token: Default::default(),
+                predicates: Punctuated::new(),
+            });
+
+            let ident = &param.ident;
+
+            if !where_clause.predicates.empty_or_trailing() {
+                where_clause.predicates.push_punct(<Token![,]>::default());
+            }
+
+            where_clause
+                .predicates
+                .push(parse_quote!(#ident: #barse_path::Barse));
+        }
+    }
+
     let (impl_generics, ty_generics, split_where_clause) = item.generics.split_for_impl();
     let where_clause = where_clause.as_ref().or(split_where_clause);
 
-    let with = with.unwrap_or_else(|| {
-        let with = format_ident!("__with_{r:x}");
-        parse_quote!(#with: ())
-    });
-
-    let read_with = read_with.as_ref().unwrap_or(&with);
-    let write_with = write_with.as_ref().unwrap_or(&with);
-
-    let read_with_ty = &read_with.ty;
-    let write_with_ty = &write_with.ty;
-
     Ok(quote! {
-        impl #impl_generics #barse_path for #name #ty_generics #where_clause {
+        impl #impl_generics #barse_path::Barse for #name #ty_generics #where_clause {
             type ReadWith = #read_with_ty;
             type WriteWith = #write_with_ty;
 
-            fn read<#e, #b>(#from: &mut #b, #read_with) -> ::core::result::Result<Self, #error_path::<#b::Err>>
+            fn read<#e, #b>(#from: &mut #b, #read_with) -> ::core::result::Result<Self, #barse_path::Error::<#b::Err>>
             where
-                #e: #endian_path,
-                #b: #byte_source_path,
+                #e: #barse_path::Endian,
+                #b: #barse_path::ByteSource,
             {
                 #read_body
                 #read_return
             }
 
-            fn write<#e, #b>(&self, #to: &mut #b, #write_with) -> ::core::result::Result<(), #error_path::<#b::Err>>
+            fn write<#e, #b>(&self, #to: &mut #b, #write_with) -> ::core::result::Result<(), #barse_path::Error::<#b::Err>>
             where
-                #e: #endian_path,
-                #b: #byte_sink_path,
+                #e: #barse_path::Endian,
+                #b: #barse_path::ByteSink,
             {
                 #write_prefix
                 #write_body

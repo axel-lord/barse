@@ -1,8 +1,9 @@
 //! Struct Derive tests.
 #![allow(dead_code)]
 
+use ::std::marker::PhantomData;
+
 use ::barse::{
-    self as barse2,
     endian::Little,
     util::{SliceSink, SliceSrc, UseEndian},
     Barse, ByteSinkExt, ByteSourceExt,
@@ -10,15 +11,37 @@ use ::barse::{
 
 #[derive(Barse)]
 #[barse(
-    where(
-        T: ::barse::Barse<ReadWith = (), WriteWith = ()>,
-    ),
-    error_path = ::barse::Error,
-    crate_path = barse2,
-    write_with = _with: i32,
-    read_with = _with: u16,
+    write_with = i32,
+    read_with = u16,
 )]
-struct Wrap<T>(T);
+#[barse(
+    where
+        T: ::barse::Barse<ReadWith = u16, WriteWith = i32>
+)]
+struct Wrap<T>(T)
+where
+    T: Sized;
+
+#[derive(Barse)]
+#[barse(
+    endian = ::barse::endian::Little,
+    read_with = <T as Barse>::ReadWith,
+    write_with = <T as Barse>::WriteWith
+)]
+struct AlwaysLittle<T>(T);
+
+#[derive(Barse)]
+#[barse(
+    where
+        T: Barse,
+        E: barse::Endian,
+)]
+#[barse(
+    read_with = T::ReadWith,
+    write_with = T::WriteWith,
+    endian = E,
+)]
+struct WithEndian<T, E>(T, #[barse(ignore)] PhantomData<fn() -> E>);
 
 /// Basic test.
 #[test]
