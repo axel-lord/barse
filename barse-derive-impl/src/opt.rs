@@ -14,7 +14,13 @@ use crate::kw;
 
 mod with_pat;
 
-pub use with_pat::WithPat;
+mod ignore_field_value;
+
+mod field_with_expr;
+
+pub use self::{
+    field_with_expr::FieldWithExpr, ignore_field_value::IgnoreFieldValue, with_pat::WithPat,
+};
 opt! {
     /// Path to barse module.
     BarsePath {
@@ -80,17 +86,6 @@ opt! {
         /// Endian to use.
         endian: ::syn::Path,
     },
-
-    /// Field with expression.
-    FieldWithExpr {
-        kw: kw::with,
-
-        /// '=' token.
-        eq_token: Token![=],
-
-        /// With expression.
-        with_expr: ::syn::Expr,
-    }
 }
 
 opt_lite! {
@@ -108,27 +103,31 @@ opt_lite! {
 
         /// Where predicates.
         predicates: Punctuated<WherePredicate, Token![,]>,
-    }
-}
+    },
 
-/// Value protion of field ignore.
-#[derive(Debug, Clone)]
-pub struct IgnoreFieldValue {
-    /// '=' token.
-    pub eq_token: Token![=],
+    /// Option to forward or use an expression for field with.
+    FieldWith {
+        kw: kw::with,
 
-    /// Expression used when reading.
-    pub value: ::syn::Expr,
-}
+        /// With expression to use.
+        expr: Option<FieldWithExpr>,
+    },
 
-/// With option.
-#[derive(Debug, Clone)]
-pub enum FieldWith {
-    /// With is an expression.
-    Expr(FieldWithExpr),
+    /// Option to forward or use an expression for field read with.
+    FieldReadWith {
+        kw: kw::read_with,
 
-    /// With is a forward (nothing follows keyword.
-    Fwd(kw::with),
+        /// With expression to use.
+        expr: Option<FieldWithExpr>,
+    },
+
+    /// Option to forward or use an expression for field write with.
+    FieldWriteWith {
+        kw: kw::write_with,
+
+        /// With expression to use.
+        expr: Option<FieldWithExpr>,
+    },
 }
 
 impl Parse for IgnoreField {
@@ -153,61 +152,42 @@ impl Parse for CustomWhere {
     }
 }
 
-impl Parse for IgnoreFieldValue {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            eq_token: input.parse()?,
-            value: input.parse()?,
-        })
-    }
-}
-
-impl ToTokens for IgnoreFieldValue {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        self.eq_token.to_tokens(tokens);
-        self.value.to_tokens(tokens);
-    }
-}
-
-impl FieldWith {
-    /// Get keyword.
-    pub const fn kw(&self) -> &kw::with {
-        match self {
-            FieldWith::Expr(FieldWithExpr { kw, .. }) | FieldWith::Fwd(kw) => kw,
-        }
-    }
-}
-
 impl Parse for FieldWith {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        Ok(if input.peek2(Token![=]) {
-            FieldWith::Expr(input.parse()?)
-        } else {
-            FieldWith::Fwd(input.parse()?)
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            kw: input.parse()?,
+            expr: if input.peek(Token![=]) {
+                Some(input.parse()?)
+            } else {
+                None
+            },
         })
     }
 }
 
-impl ToTokens for FieldWith {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        match self {
-            FieldWith::Expr(field_with_expr) => field_with_expr.to_tokens(tokens),
-            FieldWith::Fwd(kw) => kw.to_tokens(tokens),
-        }
+impl Parse for FieldReadWith {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            kw: input.parse()?,
+            expr: if input.peek(Token![=]) {
+                Some(input.parse()?)
+            } else {
+                None
+            },
+        })
     }
 }
 
-impl Opt for FieldWith {
-    fn peek(lookahead: &syn::parse::Lookahead1) -> bool {
-        lookahead.peek(kw::with)
-    }
-
-    fn name() -> impl ::core::fmt::Display {
-        <kw::with>::default().into_token_stream()
-    }
-
-    fn kw_span(&self) -> Span {
-        self.kw().span
+impl Parse for FieldWriteWith {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            kw: input.parse()?,
+            expr: if input.peek(Token![=]) {
+                Some(input.parse()?)
+            } else {
+                None
+            },
+        })
     }
 }
 

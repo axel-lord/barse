@@ -27,7 +27,7 @@ use ::barse::{
     where
         T: ::barse::Barse<ReadWith = u16, WriteWith = i32>
 )]
-struct Wrap<T>(T)
+struct Wrap<T>(#[barse(with)] T)
 where
     T: Sized;
 
@@ -37,7 +37,7 @@ where
     read_with = <T as Barse>::ReadWith,
     write_with = <T as Barse>::WriteWith
 )]
-struct AlwaysLittle<T>(T);
+struct AlwaysLittle<T>(#[barse(with)] T);
 
 #[derive(Barse)]
 #[barse(
@@ -50,7 +50,7 @@ struct AlwaysLittle<T>(T);
     write_with = T::WriteWith,
     endian = E,
 )]
-struct WithEndian<T, E>(T, #[barse(ignore)] PhantomData<fn() -> E>);
+struct WithEndian<T, E>(#[barse(with)] T, #[barse(ignore)] PhantomData<fn() -> E>);
 
 /// Basic test.
 #[test]

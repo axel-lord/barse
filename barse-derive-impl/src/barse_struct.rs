@@ -100,13 +100,28 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 }
             } else {
                 let ty = &field.ty;
-                let with_pat = &read_with.pat;
+
+                let with_expr = cfg.with.as_ref().map(|with| {
+                    with.expr
+                        .as_deref()
+                        .map_or_else(|| Either::A(&w), Either::B)
+                });
+                let read_with_expr = cfg.read_with.as_ref().map(|with| {
+                    with.expr
+                        .as_deref()
+                        .map_or_else(|| Either::A(&w), Either::B)
+                });
+
+                let read_with = read_with_expr
+                    .or(with_expr)
+                    .map_or_else(|| Either::A(quote! {()}), Either::B);
+
                 let e = endian
                     .as_ref()
                     .map_or_else(|| Either::A(&e), |e| Either::B(&e.endian));
 
                 quote! {
-                    let #name = <#ty as #barse_path::Barse>::read::<#e, #b>(#from, #with_pat)?;
+                    let #name = <#ty as #barse_path::Barse>::read::<#e, #b>(#from, #read_with)?;
                 }
             }
         })
@@ -142,11 +157,26 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 quote! { _ = #name; }
             } else {
                 let ty = &field.ty;
-                let with_pat = &write_with.pat;
+
+                let with_expr = cfg.with.as_ref().map(|with| {
+                    with.expr
+                        .as_deref()
+                        .map_or_else(|| Either::A(&w), Either::B)
+                });
+                let write_with_expr = cfg.write_with.as_ref().map(|with| {
+                    with.expr
+                        .as_deref()
+                        .map_or_else(|| Either::A(&w), Either::B)
+                });
+
+                let write_with = write_with_expr
+                    .or(with_expr)
+                    .map_or_else(|| Either::A(quote! {()}), Either::B);
+
                 let e = endian
                     .as_ref()
                     .map_or_else(|| Either::A(&e), |e| Either::B(&e.endian));
-                quote! { <#ty as #barse_path::Barse>::write::<#e, #b>(#name, #to, #with_pat)?; }
+                quote! { <#ty as #barse_path::Barse>::write::<#e, #b>(#name, #to, #write_with)?; }
             }
         })
         .collect::<TokenStream>();
