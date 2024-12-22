@@ -116,8 +116,10 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     .or(with_expr)
                     .map_or_else(|| Either::A(quote! {()}), Either::B);
 
-                let e = endian
+                let e = cfg
+                    .endian
                     .as_ref()
+                    .or(endian.as_ref())
                     .map_or_else(|| Either::A(&e), |e| Either::B(&e.endian));
 
                 quote! {
@@ -173,9 +175,12 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     .or(with_expr)
                     .map_or_else(|| Either::A(quote! {()}), Either::B);
 
-                let e = endian
+                let e = cfg
+                    .endian
                     .as_ref()
+                    .or(endian.as_ref())
                     .map_or_else(|| Either::A(&e), |e| Either::B(&e.endian));
+
                 quote! { <#ty as #barse_path::Barse>::write::<#e, #b>(#name, #to, #write_with)?; }
             }
         })

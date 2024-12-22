@@ -18,6 +18,9 @@ pub struct FieldConfig {
 
     /// Given expression is used instead of '()'.
     pub write_with: Option<opt::FieldWriteWith>,
+
+    /// Field endian.
+    pub endian: Option<opt::Endian>,
 }
 
 impl FieldConfig {
@@ -41,7 +44,8 @@ impl FieldConfig {
                 cfg.ignore,
                 cfg.with,
                 cfg.read_with,
-                cfg.write_with
+                cfg.write_with,
+                cfg.endian,
             );
         }
         Ok(cfg)

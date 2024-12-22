@@ -58,8 +58,10 @@ fn basic() {
     #[derive(Barse, PartialEq, Debug)]
     #[barse(field_prefix = field_)]
     struct TestStruct {
+        #[barse(endian = barse::endian::Little)]
         a: f32,
         b: i64,
+        #[barse(endian = barse::endian::Big)]
         c: u128,
         d: [u8; 5],
     }
