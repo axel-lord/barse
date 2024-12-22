@@ -10,8 +10,14 @@ pub struct FieldConfig {
     /// Field is ignored.
     pub ignore: Option<opt::IgnoreField>,
 
-    /// Given with value is used instead of '()'.
+    /// Given expression is used instead of '()'.
     pub with: Option<opt::FieldWith>,
+
+    /// Given expression is used instead of '()'.
+    pub read_with: Option<opt::FieldReadWith>,
+
+    /// Given expression is used instead of '()'.
+    pub write_with: Option<opt::FieldWriteWith>,
 }
 
 impl FieldConfig {
@@ -30,7 +36,13 @@ impl FieldConfig {
                 ::syn::Error::new(attr.meta.span(), "expected list attribute: #[barse(...)]")
             })?;
 
-            opt::parse_opts!(meta_list.tokens.clone(), cfg.ignore, cfg.with);
+            opt::parse_opts!(
+                meta_list.tokens.clone(),
+                cfg.ignore,
+                cfg.with,
+                cfg.read_with,
+                cfg.write_with
+            );
         }
         Ok(cfg)
     }
