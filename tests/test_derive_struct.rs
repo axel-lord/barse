@@ -1,12 +1,21 @@
 //! Struct Derive tests.
 #![allow(dead_code)]
 
+use ::barse::Barse;
+
+#[derive(Barse)]
+struct Simple {
+    a: u8,
+    b: u16,
+    c: u32,
+}
+
 use ::std::marker::PhantomData;
 
 use ::barse::{
     endian::Little,
     util::{SliceSink, SliceSrc, UseEndian},
-    Barse, ByteSinkExt, ByteSourceExt,
+    ByteSinkExt, ByteSourceExt,
 };
 
 #[derive(Barse)]

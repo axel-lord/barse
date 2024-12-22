@@ -88,7 +88,7 @@ impl Barse for () {
     }
 }
 
-impl <T> Barse for PhantomData<T> {
+impl<T> Barse for PhantomData<T> {
     type ReadWith = ();
 
     type WriteWith = ();
@@ -96,14 +96,16 @@ impl <T> Barse for PhantomData<T> {
     fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, Error<B::Err>>
     where
         E: Endian,
-        B: ByteSource {
-            Ok(PhantomData)
+        B: ByteSource,
+    {
+        Ok(PhantomData)
     }
 
     fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), Error<B::Err>>
     where
         E: Endian,
-        B: ByteSink {
+        B: ByteSink,
+    {
         Ok(())
     }
 }

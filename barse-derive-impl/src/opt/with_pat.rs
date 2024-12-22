@@ -99,4 +99,3 @@ impl ToTokens for WithPat {
         }
     }
 }
-

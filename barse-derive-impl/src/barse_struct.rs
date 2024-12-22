@@ -34,11 +34,14 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
     } = StructConfig::from_attrs(&item.attrs)?;
 
     let name = &item.ident;
-    let field_prefix = field_prefix.or_else(|| match item.fields {
-        ::syn::Fields::Unnamed(_) => Some(format_ident!("_")),
-        ::syn::Fields::Named(_) | ::syn::Fields::Unit => None,
-    });
-    let barse_path = barse_path.unwrap_or_else(|| parse_quote!(::barse));
+    let field_prefix = field_prefix.map_or_else(
+        || match item.fields {
+            ::syn::Fields::Unnamed(_) => Some(format_ident!("_")),
+            ::syn::Fields::Named(_) | ::syn::Fields::Unit => None,
+        },
+        |f| Some(f.field_prefix),
+    );
+    let barse_path = barse_path.map_or_else(|| parse_quote!(::barse), |p| p.path);
 
     let r = ::rand::random::<u32>();
 
@@ -48,12 +51,12 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
     let to = format_ident!("__to_{r:x}");
     let from = format_ident!("__from_{r:x}");
 
-    let with = with.unwrap_or_else(|| parse_quote!(#w: ()));
+    let with = with.map_or_else(|| parse_quote!(#w: ()), |w| w.with_pat);
     let read_with = read_with
-        .unwrap_or_else(|| with.clone())
+        .map_or_else(|| with.clone(), |w| w.with_pat)
         .ensure_pat(|| w.clone());
     let write_with = write_with
-        .unwrap_or_else(|| with.clone())
+        .map_or_else(|| with.clone(), |w| w.with_pat)
         .ensure_pat(|| w.clone());
 
     let read_with_ty = &read_with.ty;
@@ -98,7 +101,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
             } else {
                 let ty = &field.ty;
                 let with_pat = &read_with.pat;
-                let e = endian.as_ref().map_or_else(|| Either::A(&e), Either::B);
+                let e = endian
+                    .as_ref()
+                    .map_or_else(|| Either::A(&e), |e| Either::B(&e.endian));
 
                 quote! {
                     let #name = <#ty as #barse_path::Barse>::read::<#e, #b>(#from, #with_pat)?;
@@ -138,7 +143,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
             } else {
                 let ty = &field.ty;
                 let with_pat = &write_with.pat;
-                let e = endian.as_ref().map_or_else(|| Either::A(&e), Either::B);
+                let e = endian
+                    .as_ref()
+                    .map_or_else(|| Either::A(&e), |e| Either::B(&e.endian));
                 quote! { <#ty as #barse_path::Barse>::write::<#e, #b>(#name, #to, #with_pat)?; }
             }
         })
@@ -188,7 +195,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
     }
 
     let (impl_generics, ty_generics, split_where_clause) = item.generics.split_for_impl();
-    let where_clause = where_clause.as_ref().or(split_where_clause);
+    let where_clause = where_clause
+        .as_ref()
+        .map_or_else(|| Either::A(split_where_clause), Either::B);
 
     Ok(quote! {
         impl #impl_generics #barse_path::Barse for #name #ty_generics #where_clause {
