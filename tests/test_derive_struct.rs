@@ -63,6 +63,7 @@ fn basic() {
         b: i64,
         #[barse(endian = barse::endian::Big)]
         c: u128,
+        #[barse(bytes = 5)]
         d: [u8; 5],
     }
 

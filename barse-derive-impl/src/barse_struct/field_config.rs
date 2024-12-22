@@ -21,6 +21,9 @@ pub struct FieldConfig {
 
     /// Field endian.
     pub endian: Option<opt::Endian>,
+
+    /// Bytes.
+    pub bytes: Option<opt::Bytes>,
 }
 
 impl FieldConfig {
@@ -46,6 +49,7 @@ impl FieldConfig {
                 cfg.read_with,
                 cfg.write_with,
                 cfg.endian,
+                cfg.bytes,
             );
         }
         Ok(cfg)

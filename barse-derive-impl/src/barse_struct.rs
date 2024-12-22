@@ -98,6 +98,15 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 quote! {
                     let #name = #expr;
                 }
+            } else if let Some(bytes) = &cfg.bytes {
+                let ty = &field.ty;
+                let count = &bytes.count;
+
+                quote! {
+                    let #name = <#ty as ::core::convert::From<[u8; #count]>>::from(
+                        <#b as #barse_path::ByteSource>::read_array::<#count>(#from)?
+                    );
+                }
             } else {
                 let ty = &field.ty;
 
@@ -157,6 +166,10 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         .map(|(field, cfg, name)| {
             if cfg.ignore.is_some() {
                 quote! { _ = #name; }
+            } else if cfg.bytes.is_some() {
+                quote! {
+                    <#b as #barse_path::ByteSink>::write_slice(#to, #name.as_ref())?;
+                }
             } else {
                 let ty = &field.ty;
 
