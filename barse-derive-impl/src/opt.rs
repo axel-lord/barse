@@ -86,6 +86,17 @@ opt! {
         /// Endian to use.
         endian: ::syn::Path,
     },
+
+    /// Parse field as bytes.
+    Bytes {
+        kw: kw::bytes,
+
+        /// '=' token.
+        eq_token: Token![=],
+
+        /// How many bytes to parse.
+        count: ::syn::Expr,
+    }
 }
 
 opt_lite! {

@@ -19,6 +19,7 @@ mod kw {
     custom_keyword!(field_prefix);
     custom_keyword!(endian);
     custom_keyword!(ignore);
+    custom_keyword!(bytes);
 }
 
 mod barse_enum;
