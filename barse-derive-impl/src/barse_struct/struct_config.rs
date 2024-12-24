@@ -1,6 +1,6 @@
 //! [StructConfig] impl.
 
-use ::syn::{spanned::Spanned, Attribute};
+use ::syn::Attribute;
 
 use crate::opt;
 
@@ -36,17 +36,9 @@ impl StructConfig {
     /// If any invalid barse attributes are encountered.
     pub fn from_attrs(attrs: &[Attribute]) -> Result<Self, ::syn::Error> {
         let mut cfg = StructConfig::default();
-        for attr in attrs {
-            if !attr.path().is_ident("barse") {
-                continue;
-            }
-
-            let meta_list = attr.meta.require_list().map_err(|_| {
-                ::syn::Error::new(attr.meta.span(), "expected list attribute: #[barse(...)]")
-            })?;
-
+        opt::parse_attrs(attrs, |tokens| {
             opt::parse_opts!(
-                meta_list.tokens.clone(),
+                tokens,
                 cfg.where_clause,
                 cfg.barse_path,
                 cfg.with,
@@ -55,8 +47,8 @@ impl StructConfig {
                 cfg.field_prefix,
                 cfg.endian
             );
-        }
-
+            Ok(())
+        })?;
         Ok(cfg)
     }
 }
