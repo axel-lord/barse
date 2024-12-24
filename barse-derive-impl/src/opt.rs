@@ -2,10 +2,11 @@
 
 use ::std::ops::ControlFlow;
 
-use ::proc_macro2::Span;
+use ::proc_macro2::{Span, TokenStream};
 use ::syn::{
     parse::{Parse, ParseBuffer, ParseStream},
     punctuated::Punctuated,
+    spanned::Spanned as _,
     token, Token, WherePredicate,
 };
 use quote::ToTokens;
@@ -263,6 +264,42 @@ impl Parse for WithPat {
     }
 }
 
+/// Parse barse attributes and run given function on tokens.
+///
+/// # Errors
+/// If the barse attribute is not of the [Barse(...)] format.
+/// Or if the given function errors.
+pub fn parse_attrs(
+    attrs: &[::syn::Attribute],
+    mut f: impl FnMut(TokenStream) -> Result<(), ::syn::Error>,
+) -> Result<(), ::syn::Error> {
+    let mut parse_attr = |attr: &::syn::Attribute| -> Result<(), ::syn::Error> {
+        let meta_list = attr.meta.require_list().map_err(|_| {
+            ::syn::Error::new(attr.meta.span(), "expected list attribute: #[barse(...)]")
+        })?;
+
+        f(meta_list.tokens.clone())?;
+        Ok(())
+    };
+    let mut errors = Vec::new();
+    for attr in attrs {
+        if !attr.path().is_ident("barse") {
+            continue;
+        }
+
+        if let Err(err) = parse_attr(attr) {
+            errors.push(err);
+        }
+    }
+    errors
+        .into_iter()
+        .reduce(|mut acc, err| {
+            acc.combine(err);
+            acc
+        })
+        .map_or(Ok(()), Err)
+}
+
 /// Option trait.
 pub trait Opt {
     /// Check if item in lookahead should be this option.
@@ -310,6 +347,7 @@ impl<'a> Chain<'a> {
         }
 
         let val = O::parse(self.input)?;
+        self.flow = ControlFlow::Break(());
 
         if opt.is_some() {
             return Err(::syn::Error::new(
@@ -319,7 +357,6 @@ impl<'a> Chain<'a> {
         }
 
         *opt = Some(val);
-        self.flow = ControlFlow::Break(());
 
         Ok(self)
     }
