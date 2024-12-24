@@ -20,8 +20,8 @@ use ::barse::{
 
 #[derive(Barse)]
 #[barse(
-    write_with = i32,
-    read_with = u16,
+    write_with = hello: i32,
+    read_with = hello: u16,
 )]
 #[barse(
     where

@@ -10,20 +10,17 @@ use ::syn::{
 };
 use quote::ToTokens;
 
-use crate::kw;
-
-mod with_pat;
-
-mod ignore_field_value;
-
-mod field_with_expr;
-
-pub use self::{
-    field_with_expr::FieldWithExpr, ignore_field_value::IgnoreFieldValue, with_pat::WithPat,
+use crate::{
+    kw,
+    opt::opt_macro::{opt, opt_lite},
 };
+
+mod opt_macro;
+
 opt! {
     /// Path to barse module.
     BarsePath {
+        /// Opt keyword.
         kw: kw::barse_path,
 
         /// '=' token.
@@ -34,6 +31,7 @@ opt! {
     },
     /// With pattern of type.
     With {
+        /// Opt keyword.
         kw: kw::with,
 
         /// '=' token.
@@ -45,6 +43,7 @@ opt! {
 
     /// ReadWith pattern of type.
     ReadWith {
+        /// Opt keyword.
         kw: kw::read_with,
 
         /// '=' token.
@@ -56,6 +55,7 @@ opt! {
 
     /// WriteWith pattern of type.
     WriteWith {
+        /// Opt keyword.
         kw: kw::write_with,
 
         /// '=' token.
@@ -67,6 +67,7 @@ opt! {
 
     /// Field prefix.
     FieldPrefix {
+        /// Opt keyword.
         kw: kw::field_prefix,
 
         /// '=' token.
@@ -78,6 +79,7 @@ opt! {
 
     /// Force endian.
     Endian {
+        /// Opt keyword.
         kw: kw::endian,
 
         /// '=' token.
@@ -89,6 +91,7 @@ opt! {
 
     /// Parse field as bytes.
     Bytes {
+        /// Opt keyword.
         kw: kw::bytes,
 
         /// '=' token.
@@ -96,12 +99,41 @@ opt! {
 
         /// How many bytes to parse.
         count: ::syn::Expr,
-    }
+    },
+
+    /// Field with expression.
+    FieldWithExpr {
+        /// '=' token.
+        eq_token: Token![=],
+
+        /// With expression.
+        expr: ::syn::Expr,
+    },
+
+    /// Value portion of field ignore.
+    IgnoreFieldValue {
+        /// '=' token.
+        eq_token: Token![=],
+
+        /// Expression used when reading.
+        value: ::syn::Expr,
+    },
+
+    /// With pattern pattern and colon.
+    WithPatPat {
+        /// Pattern to bind type to.
+        #[attr = deref]
+        pat: ::syn::Ident,
+
+        /// ':' token.
+        colon_token: token::Colon,
+    },
 }
 
 opt_lite! {
     /// Option to ignore a field.
     IgnoreField {
+        /// Opt keyword.
         kw: kw::ignore,
 
         /// Expression used instead of default().
@@ -110,6 +142,7 @@ opt_lite! {
 
     /// Option to set a custom where clause.
     CustomWhere {
+        /// Opt keyword.
         kw: token::Where,
 
         /// Where predicates.
@@ -118,6 +151,7 @@ opt_lite! {
 
     /// Option to forward or use an expression for field with.
     FieldWith {
+        /// Opt keyword.
         kw: kw::with,
 
         /// With expression to use.
@@ -126,6 +160,7 @@ opt_lite! {
 
     /// Option to forward or use an expression for field read with.
     FieldReadWith {
+        /// Opt keyword.
         kw: kw::read_with,
 
         /// With expression to use.
@@ -134,11 +169,21 @@ opt_lite! {
 
     /// Option to forward or use an expression for field write with.
     FieldWriteWith {
+        /// Opt keyword.
         kw: kw::write_with,
 
         /// With expression to use.
         expr: Option<FieldWithExpr>,
     },
+
+    /// With pattern for types.
+    WithPat {
+        /// Optional pattern.
+        pat: Option<WithPatPat>,
+
+        /// Type of pattern.
+        ty: ::syn::Type,
+    }
 }
 
 impl Parse for IgnoreField {
@@ -202,84 +247,20 @@ impl Parse for FieldWriteWith {
     }
 }
 
-/// Generate option structs.
-macro_rules! opt {
-    ($(
-        $(#[doc = $sdoc:expr])*
-        $nm:ident {
-            $(#[doc = $kwdoc:expr])*
-            kw: $kw:path,
-            $(
-            $(#[doc = $fdoc:expr])*
-            $f_nm:ident: $f_ty:ty,
-            )*
-        }
-    ),* $(,)?) => {$(
-        opt_lite! {
-            $(#[doc = $sdoc])*
-            $nm {
-                $(#[doc = $kwdoc])*
-                kw: $kw,
-                $(
-                $(#[doc = $fdoc])*
-                $f_nm: $f_ty,
-                )*
-            }
-        }
-
-        impl Parse for $nm {
-            fn parse(input: ParseStream) -> syn::Result<Self> {
-                Ok(Self { kw: input.parse()?, $($f_nm: input.parse()?,)* })
-            }
-        }
-    )*};
-}
-
-/// Generate option struct without parse impl.
-macro_rules! opt_lite {
-    ($(
-        $(#[doc = $sdoc:expr])*
-        $nm:ident {
-            $(#[doc = $kwdoc:expr])*
-            kw: $kw:path,
-            $(
-            $(#[doc = $fdoc:expr])*
-            $f_nm:ident: $f_ty:ty,
-            )*
-        }
-    ),* $(,)?) => {$(
-        #[derive(Debug, Clone)]
-        $(#[doc = $sdoc])*
-        pub struct $nm {
-            #[doc = "Option keyword."]
-            pub kw: $kw,
-        $(
-            $(#[doc = $fdoc])*
-            pub $f_nm: $f_ty,
-        )*
-        }
-
-        impl Opt for $nm {
-            fn peek(lookahead: &::syn::parse::Lookahead1) -> bool {
-                lookahead.peek($kw)
-            }
-
-            fn name() -> impl ::core::fmt::Display {
-                <$kw>::default().into_token_stream()
-            }
-
-            fn kw_span(&self) -> Span {
-                ::syn::spanned::Spanned::span(&self.kw)
-            }
-        }
-
-        impl ToTokens for $nm {
-            fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-                self.kw.to_tokens(tokens);
-                $(self.$f_nm.to_tokens(tokens);)*
-            }
-        }
-    )*};
+impl Parse for WithPat {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let err = |err: ::syn::Error| {
+            ::syn::Error::new(err.span(), "expected either 'pattern: Type' or 'Type'")
+        };
+        Ok(Self {
+            pat: if input.peek(::syn::Ident) && input.peek2(Token![:]) && !input.peek3(Token![:]) {
+                Some(input.parse().map_err(err)?)
+            } else {
+                None
+            },
+            ty: input.parse().map_err(err)?,
+        })
+    }
 }
 
 /// Option trait.
@@ -382,6 +363,4 @@ macro_rules! parse_opts {
     }};
 }
 
-use opt;
-use opt_lite;
 pub(crate) use parse_opts;

@@ -35,6 +35,16 @@ pub fn derive_barse(item: TokenStream) -> TokenStream {
         .unwrap_or_else(::syn::Error::into_compile_error)
 }
 
+/// Create an expression from something that may be turned into a path.
+fn path_expr(path: impl Into<::syn::Path>) -> ::syn::Expr {
+    ::syn::ExprPath {
+        attrs: Vec::new(),
+        qself: None,
+        path: path.into(),
+    }
+    .into()
+}
+
 /// ToTokens implementor that may be one of two types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Either<A, B> {
