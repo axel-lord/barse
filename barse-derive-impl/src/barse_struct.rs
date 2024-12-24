@@ -8,10 +8,8 @@ use ::syn::{
 
 use crate::{
     barse_struct::{field_config::FieldConfig, struct_config::StructConfig},
-    path_expr, Either,
+    opt, path_expr, Either,
 };
-
-mod struct_config;
 
 mod field_config;
 
@@ -23,15 +21,27 @@ mod field_config;
 /// # Panics
 /// On bad implementation.
 pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::Error> {
-    let StructConfig {
-        barse_path,
-        where_clause,
-        with,
-        read_with,
-        write_with,
-        field_prefix,
-        endian,
-    } = StructConfig::from_attrs(&item.attrs)?;
+    let mut where_clause: Option<opt::CustomWhere> = None;
+    let mut barse_path: Option<opt::BarsePath> = None;
+    let mut with: Option<opt::With> = None;
+    let mut read_with: Option<opt::ReadWith> = None;
+    let mut write_with: Option<opt::WriteWith> = None;
+    let mut field_prefix: Option<opt::FieldPrefix> = None;
+    let mut endian: Option<opt::Endian> = None;
+
+    opt::parse_attrs(&item.attrs, |tokens| {
+        opt::parse_opts!(
+            tokens,
+            where_clause,
+            barse_path,
+            with,
+            read_with,
+            write_with,
+            field_prefix,
+            endian
+        );
+        Ok(())
+    })?;
 
     let name = &item.ident;
     let field_prefix = field_prefix.map_or_else(
