@@ -6,12 +6,30 @@ use ::syn::{
     parse_quote, punctuated::Punctuated, GenericParam, Generics, ItemStruct, Token, WhereClause,
 };
 
-use crate::{
-    barse_struct::{field_config::FieldConfig, struct_config::StructConfig},
-    opt, path_expr, Either,
-};
+use crate::{opt, path_expr, Either};
 
-mod field_config;
+opt::opt_parser! {
+    /// Struct field configuration.
+    FieldConfig {
+        /// Field is ignored.
+        ignore: opt::IgnoreField,
+
+        /// Given expression is used instead of '()'.
+        with: opt::FieldWith,
+
+        /// Given expression is used instead of '()'.
+        read_with: opt::FieldReadWith,
+
+        /// Given expression is used instead of '()'.
+        write_with: opt::FieldWriteWith,
+
+        /// Field endian.
+        endian: opt::Endian,
+
+        /// Bytes.
+        bytes: opt::Bytes,
+    }
+}
 
 /// Derive barse for a struct.
 ///
@@ -80,7 +98,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         .iter()
         .enumerate()
         .map(|(i, field)| {
-            let cfg = FieldConfig::from_attrs(&field.attrs)?;
+            let cfg = FieldConfig::default().parse_attrs(&field.attrs)?;
             let name = field.ident.as_ref().map_or_else(
                 || {
                     field_prefix.as_ref().map_or_else(
