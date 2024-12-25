@@ -28,7 +28,31 @@ opt::opt_parser! {
 
         /// Bytes.
         bytes: opt::Bytes,
-    }
+    },
+
+    /// Struct configuration.
+    StructConfig {
+        /// Replace where clause of barse impl.
+        where_clause: opt::CustomWhere,
+
+        /// Replace path to barse crate/module.
+        barse_path: opt::BarsePath,
+
+        /// Set a ReadWith and WriteWith value.
+        with: opt::With,
+
+        /// Set a ReadWith value.
+        read_with: opt::ReadWith,
+
+        /// Set a WriteWith value.
+        write_with: opt::WriteWith,
+
+        /// Set prefix prepended to field names in expressions. (_ by default for tuple structs).
+        field_prefix: opt::FieldPrefix,
+
+        /// Set a fixed endian in use by struct (fields may overwrite to another fixed endian).
+        endian: opt::Endian,
+    },
 }
 
 /// Derive barse for a struct.
@@ -39,27 +63,15 @@ opt::opt_parser! {
 /// # Panics
 /// On bad implementation.
 pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::Error> {
-    let mut where_clause: Option<opt::CustomWhere> = None;
-    let mut barse_path: Option<opt::BarsePath> = None;
-    let mut with: Option<opt::With> = None;
-    let mut read_with: Option<opt::ReadWith> = None;
-    let mut write_with: Option<opt::WriteWith> = None;
-    let mut field_prefix: Option<opt::FieldPrefix> = None;
-    let mut endian: Option<opt::Endian> = None;
-
-    opt::parse_attrs(&item.attrs, |tokens| {
-        opt::parse_opts!(
-            tokens,
-            where_clause,
-            barse_path,
-            with,
-            read_with,
-            write_with,
-            field_prefix,
-            endian
-        );
-        Ok(())
-    })?;
+    let StructConfig {
+        where_clause,
+        barse_path,
+        with,
+        read_with,
+        write_with,
+        field_prefix,
+        endian,
+    } = StructConfig::default().parse_attrs(&item.attrs)?;
 
     let name = &item.ident;
     let field_prefix = field_prefix.map_or_else(
