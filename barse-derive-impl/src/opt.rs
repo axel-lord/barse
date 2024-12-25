@@ -400,4 +400,38 @@ macro_rules! parse_opts {
     }};
 }
 
+/// Create structs used to parse attributes.
+macro_rules! opt_parser {
+    ($(
+        $(#[doc = $sdoc:expr])*
+        $nm:ident {$(
+            $(#[doc = $fdoc:expr])*
+            $fnm:ident: $fty:ty
+        ),+ $(,)?}
+    ),* $(,)?) => {$(
+        $(#[doc = $sdoc])*
+        #[derive(Debug, Clone, Default)]
+        pub struct $nm {$(
+            $(#[doc = $fdoc])*
+            pub $fnm: Option<$fty>,
+        )*}
+
+        impl $nm {
+            #[doc = "Parse options from attributes\n# Errors\nIf option parsing fails."]
+            pub fn parse_attrs(mut self, attrs: &[::syn::Attribute]) -> Result<Self, ::syn::Error> {
+                $crate::opt::parse_attrs(attrs, |tokens| {
+                    $crate::opt::parse_opts!(
+                        tokens,
+                        $(self. $fnm,)*
+                    );
+                    Ok(())
+                })?;
+                Ok(self)
+            }
+        }
+
+    )*};
+}
+
+pub(crate) use opt_parser;
 pub(crate) use parse_opts;
