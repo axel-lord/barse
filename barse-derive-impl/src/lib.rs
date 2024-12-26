@@ -20,6 +20,10 @@ mod kw {
     custom_keyword!(endian);
     custom_keyword!(ignore);
     custom_keyword!(bytes);
+    custom_keyword!(read_bytes);
+    custom_keyword!(write_bytes);
+    custom_keyword!(read_using);
+    custom_keyword!(write_using);
 }
 
 mod barse_enum;
