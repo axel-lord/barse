@@ -28,6 +28,18 @@ opt::opt_parser! {
 
         /// Bytes.
         bytes: opt::Bytes,
+
+        /// Read bytes.
+        read_bytes: opt::ReadBytes,
+
+        /// Write bytes.
+        write_bytes: opt::WriteBytes,
+
+        /// Read using provided function.
+        read_using: opt::ReadUsing,
+
+        /// Write using provided function.
+        wrtie_using: opt::WriteUsing,
     },
 
     /// Struct configuration.
@@ -92,17 +104,15 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
     let from_ident = format_ident!("__from_{r:x}");
 
     let default_with = with.map_or_else(|| parse_quote!(#with_ident: ()), |w| w.with_pat);
-
     let default_with_pat = default_with.pat.as_deref().unwrap_or(&with_ident);
     let default_with_expr = path_expr(default_with_pat.clone());
 
     let read_with = read_with.as_deref().unwrap_or(&default_with);
-    let write_with = write_with.as_deref().unwrap_or(&default_with);
-
     let read_with_pat = read_with.pat.as_deref().unwrap_or(&with_ident);
-    let write_with_pat = write_with.pat.as_deref().unwrap_or(&with_ident);
-
     let read_with_expr = path_expr(read_with_pat.clone());
+
+    let write_with = write_with.as_deref().unwrap_or(&default_with);
+    let write_with_pat = write_with.pat.as_deref().unwrap_or(&with_ident);
     let write_with_expr = path_expr(write_with_pat.clone());
 
     let fields = item
@@ -141,14 +151,13 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 quote! {
                     let #name = #expr;
                 }
-            } else if let Some(bytes) = &cfg.bytes {
+            } else if let Some(count) = cfg.read_bytes.as_deref().or(cfg.bytes.as_deref()) {
                 let ty = &field.ty;
-                let count = &bytes.count;
 
                 quote! {
-                    let #name = <#ty as ::core::convert::From<[u8; #count]>>::from(
-                        <#byte_ident as #barse_path::ByteSource>::read_array::<#count>(#from_ident)?
-                    );
+                    let mut #name = [0u8; #count];
+                    <#byte_ident as #barse_path::ByteSource>::read_slice(#from_ident, &mut #name)?;
+                    let #name = <#ty as ::core::convert::From<[u8; #count]>>::from(#name);
                 }
             } else {
                 let ty = &field.ty;
@@ -204,10 +213,12 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         .map(|(field, cfg, name)| {
             if cfg.ignore.is_some() {
                 quote! { _ = #name; }
-            } else if cfg.bytes.is_some() {
-                quote! {
-                    <#byte_ident as #barse_path::ByteSink>::write_slice(#to_ident, #name.as_ref())?;
-                }
+            } else if cfg.bytes.is_some() || cfg.write_bytes.is_some() {
+                let ty = &field.ty;
+                quote! {{
+                    let #name = <#ty as ::core::convert::AsRef<[u8]>>::as_ref(#name);
+                    <#byte_ident as #barse_path::ByteSink>::write_slice(#to_ident, #name)?;
+                }}
             } else {
                 let ty = &field.ty;
 
@@ -227,7 +238,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     .or(endian.as_ref())
                     .map_or_else(|| Either::A(&endian_ident), |e| Either::B(&e.endian));
 
-                quote! { <#ty as #barse_path::Barse>::write::<#e, #byte_ident>(#name, #to_ident, #write_with)?; }
+                quote! {
+                    <#ty as #barse_path::Barse>::write::<#e, #byte_ident>(#name, #to_ident, #write_with)?;
+                }
             }
         })
         .collect::<TokenStream>();
@@ -284,6 +297,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
     let write_with_ty = &write_with.ty;
 
     Ok(quote! {
+        #[automatically_derived]
         impl #impl_generics #barse_path::Barse for #name #ty_generics #where_clause {
             type ReadWith = #read_with_ty;
             type WriteWith = #write_with_ty;

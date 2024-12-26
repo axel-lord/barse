@@ -90,7 +90,7 @@ opt! {
         endian: ::syn::Path,
     },
 
-    /// Parse field as bytes.
+    /// Read and write field as bytes.
     Bytes {
         /// Opt keyword.
         kw: kw::bytes,
@@ -100,6 +100,24 @@ opt! {
 
         /// How many bytes to parse.
         count: ::syn::Expr,
+    },
+
+    /// Read field as bytes.
+    ReadBytes {
+        /// Opt Keyword.
+        kw: kw::read_bytes,
+
+        /// '=' token.
+        eq_token: Token![=],
+
+        /// How many bytes to parse.
+        count: ::syn::Expr,
+    },
+
+    /// Write field as bytes.
+    WriteBytes {
+        /// Opt Keyword.
+        kw: kw::write_bytes,
     },
 
     /// Field with expression.
@@ -129,6 +147,24 @@ opt! {
         /// ':' token.
         colon_token: token::Colon,
     },
+
+    /// Read using a specific function.
+    ReadUsing {
+        /// Opt keyword
+        kw: kw::read_using,
+
+        /// Function path.
+        path: ::syn::Path,
+    },
+
+    /// Write using a specific function.
+    WriteUsing {
+        /// Opt keyword
+        kw: kw::read_using,
+
+        /// Function path.
+        path: ::syn::Path,
+    }
 }
 
 opt_lite! {
