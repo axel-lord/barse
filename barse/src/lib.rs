@@ -9,6 +9,9 @@ mod byte_source;
 
 mod byte_sink;
 
+#[cfg(feature = "barse_as")]
+mod barse_as;
+
 #[cfg(feature = "ext")]
 mod ext;
 
@@ -26,6 +29,9 @@ mod sealed {
 }
 
 pub use self::{barse::Barse, byte_sink::ByteSink, byte_source::ByteSource, error::Error};
+
+#[cfg(feature = "barse_as")]
+pub use self::barse_as::{ReadAs, WriteAs};
 
 #[cfg(feature = "ext")]
 pub use self::ext::{ByteSinkExt, ByteSourceExt};
@@ -57,6 +63,9 @@ pub mod prelude {
     pub use crate::{AsByteSink, AsByteSource};
 
     pub use crate::{ByteSink, ByteSource};
+
+    #[cfg(feature = "barse_as")]
+    pub use crate::{ReadAs, WriteAs};
 
     #[cfg(feature = "ext")]
     pub use crate::{ByteSinkExt, ByteSourceExt};

@@ -32,6 +32,8 @@ mod barse_struct;
 
 mod opt;
 
+mod result_aggregate;
+
 /// Derive barse for a struct or enum.
 pub fn derive_barse(item: TokenStream) -> TokenStream {
     ::syn::parse2(item)
