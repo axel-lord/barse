@@ -8,11 +8,10 @@ pub trait ReadAs<T, W = ()> {
     ///
     /// # Errors
     /// If implementation needs to.
-    fn read<E: Endian, B: ByteSource>(
-        self,
-        from: &mut B,
-        with: W,
-    ) -> Result<T, crate::Error<B::Err>>;
+    fn read<E, B>(self, from: &mut B, with: W) -> Result<T, crate::Error<B::Err>>
+    where
+        E: Endian,
+        B: ByteSource;
 }
 
 /// Write another type.
@@ -21,6 +20,8 @@ pub trait WriteAs<T, W = ()> {
     ///
     /// # Errors
     /// If the implementation needs to.
-    fn write<E: Endian, B: ByteSink>(self, to: &mut B, with: W)
-        -> Result<(), crate::Error<B::Err>>;
+    fn write<E, B>(self, value: &T, to: &mut B, with: W) -> Result<(), crate::Error<B::Err>>
+    where
+        E: Endian,
+        B: ByteSink;
 }
