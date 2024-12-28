@@ -7,13 +7,13 @@ use crate::{ByteSink, ByteSource};
 /// Extension trait used to convert [Read] implementors to [ByteSource].
 pub trait AsByteSource {
     /// Get a [ByteSource].
-    fn as_byte_source(&mut self) -> impl '_ + ByteSource;
+    fn as_byte_source(&mut self) -> impl '_ + ByteSource<Err = ::std::io::Error>;
 }
 
 /// Extension trait used to convert [Write] implementors to [ByteSink].
 pub trait AsByteSink {
     /// Get a [ByteSink].
-    fn as_byte_sink(&mut self) -> impl '_ + ByteSink;
+    fn as_byte_sink(&mut self) -> impl '_ + ByteSink<Err = ::std::io::Error>;
 }
 
 /// [Read] wrapper.
@@ -38,7 +38,7 @@ where
     T: Read,
 {
     #[inline]
-    fn as_byte_source(&mut self) -> impl '_ + ByteSource {
+    fn as_byte_source(&mut self) -> impl '_ + ByteSource<Err = ::std::io::Error> {
         Reader(self)
     }
 }
@@ -65,7 +65,7 @@ where
     T: Write,
 {
     #[inline]
-    fn as_byte_sink(&mut self) -> impl '_ + ByteSink {
+    fn as_byte_sink(&mut self) -> impl '_ + ByteSink<Err = ::std::io::Error> {
         Writer(self)
     }
 }

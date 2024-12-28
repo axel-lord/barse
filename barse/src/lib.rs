@@ -93,3 +93,7 @@ pub use zerocopy::Zerocopy;
 
 #[cfg(feature = "bytemuck")]
 pub use bytemuck::Bytemuck;
+
+#[cfg(all(feature = "std", feature = "ext"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "ext"))))]
+pub use if_std::{read_value, write_value};
