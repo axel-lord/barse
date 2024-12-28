@@ -114,7 +114,22 @@ impl<T> Barse for PhantomData<T> {
 macro_rules! integer_impl {
     ($($ty:ty),*) => {
         $(
-        paste::paste! {
+        impl crate::sealed::ToFromEndian for $ty {
+            type Bytes = [u8; size_of::<$ty>()];
+
+            #[inline]
+            fn to_native(self) -> Self::Bytes { <$ty>::to_ne_bytes(self) }
+            #[inline]
+            fn to_big(self) -> Self::Bytes { <$ty>::to_be_bytes(self) }
+            #[inline]
+            fn to_little(self) -> Self::Bytes { <$ty>::to_le_bytes(self) }
+            #[inline]
+            fn from_native(bytes: Self::Bytes) -> Self { <$ty>::from_ne_bytes(bytes) }
+            #[inline]
+            fn from_big(bytes: Self::Bytes) -> Self { <$ty>::from_be_bytes(bytes) }
+            #[inline]
+            fn from_little(bytes: Self::Bytes) -> Self { <$ty>::from_le_bytes(bytes) }
+        }
         impl Barse for $ty {
             type ReadWith = ();
             type WriteWith = ();
@@ -124,7 +139,7 @@ macro_rules! integer_impl {
                 E: Endian,
                 B: ByteSource,
             {
-                    Ok(E :: [< $ty _from_bytes >](from.read_array()?))
+                Ok(E::read::<Self>(from.read_array()?))
             }
 
             #[inline]
@@ -133,9 +148,8 @@ macro_rules! integer_impl {
                 E: Endian,
                 B: ByteSink
             {
-                Ok(to.write_array(E :: [< $ty _to_bytes >](*self))?)
+                Ok(to.write_array(E::write::<Self>(*self))?)
             }
-        }
         }
         )*
     };

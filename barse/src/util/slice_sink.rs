@@ -1,5 +1,7 @@
 //! [SliceSink] implementation.
 
+use ::core::fmt::Display;
+
 use crate::ByteSink;
 
 /// [ByteSink] implementor wrapping a slice.
@@ -24,9 +26,23 @@ impl<'src> SliceSink<'src> {
 
 /// Error returned by [ByteSink] implementation for [SliceSink] when no more bytes can be written
 /// to sink.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("a value was too large to be written to remaining length at head of SliceSink")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SliceSinkFull;
+
+impl Display for SliceSinkFull {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("a value was too large to be written to remaining length at head of SliceSink")
+    }
+}
+
+impl ::core::error::Error for SliceSinkFull {}
+
+impl From<SliceSinkFull> for crate::Error {
+    fn from(_value: SliceSinkFull) -> Self {
+        static ERR: SliceSinkFull = SliceSinkFull;
+        crate::Error::Dyn(&ERR)
+    }
+}
 
 impl ByteSink for SliceSink<'_> {
     type Err = SliceSinkFull;
