@@ -57,6 +57,9 @@ pub use if_std_ext::{AsByteSink, AsByteSource};
 #[cfg(feature = "derive")]
 pub use barse_derive::Barse;
 
+#[cfg(feature = "zerocopy")]
+pub use zerocopy::Zerocopy;
+
 pub mod endian;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "util")))]
@@ -65,26 +68,8 @@ pub mod util;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "zerocopy")))]
 #[cfg(feature = "zerocopy")]
-pub mod zerocopy;
+mod zerocopy;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
 #[cfg(feature = "bytemuck")]
 pub mod bytemuck;
-
-pub mod prelude {
-    //! Crate prelude, gives access to needed traits.
-
-    #[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "ext"))))]
-    #[cfg(all(feature = "std", feature = "ext"))]
-    pub use crate::{AsByteSink, AsByteSource};
-
-    pub use crate::{ByteSink, ByteSource};
-
-    #[cfg_attr(docsrs, doc(cfg(feature = "barse_as")))]
-    #[cfg(feature = "barse_as")]
-    pub use crate::{ReadAs, WriteAs};
-
-    #[cfg_attr(docsrs, doc(cfg(feature = "ext")))]
-    #[cfg(feature = "ext")]
-    pub use crate::ext::{ByteSinkExt, ByteSourceExt};
-}

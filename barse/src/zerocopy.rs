@@ -1,57 +1,46 @@
-//! [Barse] implementations using zerocopy.
+//! read as and write as implementations using zerocopy.
 
 use ::zerocopy::{FromBytes, Immutable, IntoBytes};
 
-use crate::Barse;
+use crate::{ReadAs, WriteAs};
 
-/// Value implementing [FromBytes] and [IntoBytes].
+/// Type to read/write zerocpy types using [ReadAs] and [WriteAs].
 ///
-/// Endianess will be platform specific ([Native][crate::endian::Native]) in all cases.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct UseIntoFromBytes<T>(T);
+/// Endianess will always be native (same as using [endian::Native][crate::endian::Native]).
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Zerocopy;
 
-impl<T> UseIntoFromBytes<T>
+impl<T> ReadAs<T> for Zerocopy
 where
-    T: FromBytes + IntoBytes + Immutable + Barse,
+    T: IntoBytes + FromBytes,
 {
-    /// Construct a new [UseIntoFromBytes] from a value.
-    pub const fn new(value: T) -> Self {
-        Self(value)
-    }
-
-    /// Unwrap [UseIntoFromBytes] to wrapped value.
-    pub fn into_inner(self) -> T {
-        let Self(value) = self;
-        value
-    }
-}
-
-impl<T> Barse for UseIntoFromBytes<T>
-where
-    T: FromBytes + IntoBytes + Immutable + Barse,
-{
-    type ReadWith = ();
-    type WriteWith = ();
-
-    fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::WrappedErr<B::Err>>
+    #[inline]
+    fn read_with<E, B>(self, from: &mut B, _with: ()) -> Result<T, crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSource,
     {
         let mut value = T::new_zeroed();
-
         from.read_slice(value.as_mut_bytes())?;
-
-        Ok(Self(value))
+        Ok(value)
     }
+}
 
-    fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::WrappedErr<B::Err>>
+impl<T> WriteAs<T> for Zerocopy
+where
+    T: IntoBytes + Immutable,
+{
+    fn write_with<E, B>(
+        self,
+        value: &T,
+        to: &mut B,
+        _with: (),
+    ) -> Result<(), crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSink,
     {
-        to.write_slice(self.0.as_bytes())?;
-
+        to.write_slice(value.as_bytes())?;
         Ok(())
     }
 }
