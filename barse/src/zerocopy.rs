@@ -4,7 +4,7 @@ use ::zerocopy::{FromBytes, Immutable, IntoBytes};
 
 use crate::{ReadAs, WriteAs};
 
-/// Type to read/write zerocpy types using [ReadAs] and [WriteAs].
+/// Type to read/write zerocopy types using [ReadAs] and [WriteAs].
 ///
 /// Endianess will always be native (same as using [endian::Native][crate::endian::Native]).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
