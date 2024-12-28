@@ -2,60 +2,46 @@
 
 use ::bytemuck::{AnyBitPattern, NoUninit};
 
-use crate::Barse;
+use crate::{ReadAs, WriteAs};
 
-/// Value implementing [AnyBitPattern] and [NoUninit].
+/// Type to read/write bytemuck types using [ReadAs] and [WriteAs].
 ///
-/// Endianess will be platform specific ([Native][crate::endian::Native]) in all cases.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct UseAnyBitPattern<T>(T);
+/// Endianess will always be native (same as using [endian::Native][crate::endian::Native]).
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Bytemuck;
 
-impl<T> UseAnyBitPattern<T>
-where
-    T: AnyBitPattern + NoUninit + Barse,
-{
-    /// Construct a new [UseAnyBitPattern] from a value.
-    #[inline]
-    pub const fn new(value: T) -> Self {
-        Self(value)
-    }
-
-    /// Unwrap [UseAnyBitPattern] to wrapped value.
-    #[inline]
-    pub const fn into_inner(self) -> T {
-        let Self(value) = self;
-        value
-    }
-}
-
-impl<T> Barse for UseAnyBitPattern<T>
+impl<T> ReadAs<T> for Bytemuck
 where
     T: AnyBitPattern + NoUninit,
 {
-    type ReadWith = ();
-    type WriteWith = ();
-
     #[inline]
-    fn read_with<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::WrappedErr<B::Err>>
+    fn read_with<E, B>(self, from: &mut B, _with: ()) -> Result<T, crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSource,
     {
         let mut value = T::zeroed();
-
         from.read_slice(::bytemuck::bytes_of_mut(&mut value))?;
-
-        Ok(Self(value))
+        Ok(value)
     }
+}
 
+impl<T> WriteAs<T> for Bytemuck
+where
+    T: NoUninit,
+{
     #[inline]
-    fn write_with<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::WrappedErr<B::Err>>
+    fn write_with<E, B>(
+        self,
+        value: &T,
+        to: &mut B,
+        _with: (),
+    ) -> Result<(), crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,
         B: crate::ByteSink,
     {
-        to.write_slice(::bytemuck::bytes_of(&self.0))?;
+        to.write_slice(::bytemuck::bytes_of(value))?;
         Ok(())
     }
 }
