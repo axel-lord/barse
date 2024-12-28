@@ -1,6 +1,6 @@
 //! Utilities for reading/writing external types.
 
-use crate::{ByteSink, ByteSource, Endian};
+use crate::{Barse, ByteSink, ByteSource, Endian};
 
 /// Read another type.
 pub trait ReadAs<T, W = ()> {
@@ -29,4 +29,40 @@ pub trait WriteAs<T, W = ()> {
     where
         E: Endian,
         B: ByteSink;
+}
+
+/// [ReadAs]/[WriteAs] using [Barse] implementation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Default;
+
+impl<T, W> ReadAs<T, W> for Default
+where
+    T: Barse<ReadWith = W>,
+{
+    #[inline]
+    fn read_with<E, B>(self, from: &mut B, with: W) -> Result<T, crate::WrappedErr<B::Err>>
+    where
+        E: Endian,
+        B: ByteSource,
+    {
+        T::read_with::<E, B>(from, with)
+    }
+}
+
+impl<T, W> WriteAs<T, W> for Default
+where
+    T: Barse<WriteWith = W>,
+{
+    fn write_with<E, B>(
+        self,
+        value: &T,
+        to: &mut B,
+        with: W,
+    ) -> Result<(), crate::WrappedErr<B::Err>>
+    where
+        E: Endian,
+        B: ByteSink,
+    {
+        T::write_with::<E, B>(value, to, with)
+    }
 }

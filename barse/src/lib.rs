@@ -24,10 +24,6 @@ pub mod util;
 #[cfg(feature = "barse_as")]
 mod barse_as;
 
-#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "ext"))))]
-#[cfg(feature = "std")]
-mod if_std_ext;
-
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[cfg(feature = "std")]
 mod if_std;
@@ -83,13 +79,10 @@ pub use self::{
 };
 
 #[cfg(feature = "barse_as")]
-pub use self::barse_as::{ReadAs, WriteAs};
+pub use self::barse_as::{Default, ReadAs, WriteAs};
 
 #[doc(inline)]
 pub use self::endian::Endian;
-
-#[cfg(all(feature = "std", feature = "ext"))]
-pub use if_std_ext::{AsByteSink, AsByteSource};
 
 #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 #[cfg(feature = "derive")]
