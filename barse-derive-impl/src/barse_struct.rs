@@ -179,7 +179,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     .map_or_else(|| Either::A(&endian_ident), |e| Either::B(&e.endian));
 
                 quote! {
-                    let #name = <#ty as #barse_path::Barse>::read::<#e, #byte_ident>(#from_ident, #read_with)?;
+                    let #name = <#ty as #barse_path::Barse>::read_with::<#e, #byte_ident>(#from_ident, #read_with)?;
                 }
             }
         })
@@ -239,7 +239,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     .map_or_else(|| Either::A(&endian_ident), |e| Either::B(&e.endian));
 
                 quote! {
-                    <#ty as #barse_path::Barse>::write::<#e, #byte_ident>(#name, #to_ident, #write_with)?;
+                    <#ty as #barse_path::Barse>::write_with::<#e, #byte_ident>(#name, #to_ident, #write_with)?;
                 }
             }
         })
@@ -302,7 +302,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
             type ReadWith = #read_with_ty;
             type WriteWith = #write_with_ty;
 
-            fn read<#endian_ident, #byte_ident>(
+            fn read_with<#endian_ident, #byte_ident>(
                 #from_ident: &mut #byte_ident,
                 #read_with_pat: #read_with_ty
             ) -> ::core::result::Result<Self, #barse_path::WrappedErr::<#byte_ident::Err>>
@@ -314,7 +314,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 #read_return
             }
 
-            fn write<#endian_ident, #byte_ident>(
+            fn write_with<#endian_ident, #byte_ident>(
                 &self,
                 #to_ident: &mut #byte_ident,
                 #write_with_pat: #write_with_ty

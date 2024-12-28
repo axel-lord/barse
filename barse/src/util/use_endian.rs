@@ -37,16 +37,19 @@ where
     type WriteWith = T::WriteWith;
 
     #[inline]
-    fn read<_E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, crate::WrappedErr<B::Err>>
+    fn read_with<_E, B>(
+        from: &mut B,
+        with: Self::ReadWith,
+    ) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         _E: Endian,
         B: crate::ByteSource,
     {
-        T::read::<E, B>(from, with).map(Self::new)
+        T::read_with::<E, B>(from, with).map(Self::new)
     }
 
     #[inline]
-    fn write<_E, B>(
+    fn write_with<_E, B>(
         &self,
         to: &mut B,
         with: Self::WriteWith,
@@ -55,6 +58,6 @@ where
         _E: Endian,
         B: crate::ByteSink,
     {
-        T::write::<E, B>(&self.0, to, with)
+        T::write_with::<E, B>(&self.0, to, with)
     }
 }

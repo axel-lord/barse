@@ -44,7 +44,7 @@ pub trait ByteSourceExt: ByteSource {
 impl<S: ByteSource> ByteSourceExt for S {
     #[inline]
     fn read<T: Barse<ReadWith = ()>, E: Endian>(&mut self) -> Result<T, WrappedErr<Self::Err>> {
-        T::read::<E, Self>(self, ())
+        T::read_with::<E, Self>(self, ())
     }
 
     #[inline]
@@ -67,6 +67,6 @@ impl<S: ByteSource> ByteSourceExt for S {
         &mut self,
         with: T::ReadWith,
     ) -> Result<T, WrappedErr<Self::Err>> {
-        T::read::<E, Self>(self, with)
+        T::read_with::<E, Self>(self, with)
     }
 }

@@ -16,7 +16,7 @@ pub trait Barse: Sized {
     ///
     /// # Errors
     /// If Soure or implementation errors.
-    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
+    fn read_with<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource;
@@ -25,7 +25,7 @@ pub trait Barse: Sized {
     ///
     /// # Errors
     /// If Sink or implementation errors.
-    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
+    fn write_with<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink;
@@ -42,25 +42,25 @@ where
     type ReadWith = ReadWith;
     type WriteWith = WriteWith;
 
-    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
+    fn read_with<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource,
     {
         let mut values = [const { None }; N];
         for value in values.iter_mut() {
-            *value = Some(T::read::<E, B>(from, with.clone())?);
+            *value = Some(T::read_with::<E, B>(from, with.clone())?);
         }
         Ok(values.map(|value| value.expect("all values should be some")))
     }
 
-    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
+    fn write_with<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink,
     {
         for value in self {
-            T::write::<E, B>(value, to, with.clone())?;
+            T::write_with::<E, B>(value, to, with.clone())?;
         }
         Ok(())
     }
@@ -71,7 +71,7 @@ impl Barse for () {
 
     type WriteWith = ();
 
-    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
+    fn read_with<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource,
@@ -79,7 +79,11 @@ impl Barse for () {
         Ok(())
     }
 
-    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
+    fn write_with<E, B>(
+        &self,
+        _to: &mut B,
+        _with: Self::WriteWith,
+    ) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink,
@@ -93,7 +97,7 @@ impl<T> Barse for PhantomData<T> {
 
     type WriteWith = ();
 
-    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
+    fn read_with<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource,
@@ -101,7 +105,11 @@ impl<T> Barse for PhantomData<T> {
         Ok(PhantomData)
     }
 
-    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
+    fn write_with<E, B>(
+        &self,
+        _to: &mut B,
+        _with: Self::WriteWith,
+    ) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink,
@@ -134,7 +142,7 @@ macro_rules! integer_impl {
             type ReadWith = ();
             type WriteWith = ();
             #[inline]
-            fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, WrappedErr<B::Err>>
+            fn read_with<E, B>(from: &mut B, _with: ()) -> Result<Self, WrappedErr<B::Err>>
             where
                 E: Endian,
                 B: ByteSource,
@@ -143,7 +151,7 @@ macro_rules! integer_impl {
             }
 
             #[inline]
-            fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), WrappedErr<B::Err>>
+            fn write_with<E, B>(&self, to: &mut B, _with: ()) -> Result<(), WrappedErr<B::Err>>
             where
                 E: Endian,
                 B: ByteSink
