@@ -21,7 +21,6 @@ std = ["thiserror/std", "alloc"]
 zerocopy = ["dep:zerocopy", "barse_as"]
 bytemuck = ["dep:bytemuck", "barse_as"]
 alloc = []
-nightly = []
 
 [dependencies]
 barse-derive = { path = "../barse-derive", version = "0.5.0", optional = true }
