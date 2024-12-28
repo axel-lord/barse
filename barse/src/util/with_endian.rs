@@ -1,23 +1,9 @@
 //! Utilities for parsing using dynamic endian.
 
 use crate::{
-    endian::{Big, Little, Native},
+    endian::{Big, Little, Native, Runtime},
     Barse,
 };
-
-/// Endian used at runtime.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub enum RuntimeEndian {
-    /// Use big endian.
-    Big,
-
-    /// Use little endian.
-    Little,
-
-    /// Use platform native endian.
-    #[default]
-    Native,
-}
 
 /// Wrap a type such that it's [Barse] implementation uses dynamic endianess.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -41,9 +27,9 @@ where
 }
 
 impl<T: Barse<ReadWith = (), WriteWith = ()>> Barse for WithEndian<T> {
-    type ReadWith = RuntimeEndian;
+    type ReadWith = Runtime;
 
-    type WriteWith = RuntimeEndian;
+    type WriteWith = Runtime;
 
     #[inline]
     fn read<_E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, crate::WrappedErr<B::Err>>
@@ -52,9 +38,9 @@ impl<T: Barse<ReadWith = (), WriteWith = ()>> Barse for WithEndian<T> {
         B: crate::ByteSource,
     {
         match with {
-            RuntimeEndian::Big => T::read::<Big, B>(from, ()),
-            RuntimeEndian::Little => T::read::<Little, B>(from, ()),
-            RuntimeEndian::Native => T::read::<Native, B>(from, ()),
+            Runtime::Big => T::read::<Big, B>(from, ()),
+            Runtime::Little => T::read::<Little, B>(from, ()),
+            Runtime::Native => T::read::<Native, B>(from, ()),
         }
         .map(Self::new)
     }
@@ -70,9 +56,9 @@ impl<T: Barse<ReadWith = (), WriteWith = ()>> Barse for WithEndian<T> {
         B: crate::ByteSink,
     {
         match with {
-            RuntimeEndian::Big => T::write::<Big, B>(&self.0, to, ()),
-            RuntimeEndian::Little => T::write::<Little, B>(&self.0, to, ()),
-            RuntimeEndian::Native => T::write::<Native, B>(&self.0, to, ()),
+            Runtime::Big => T::write::<Big, B>(&self.0, to, ()),
+            Runtime::Little => T::write::<Little, B>(&self.0, to, ()),
+            Runtime::Native => T::write::<Native, B>(&self.0, to, ()),
         }
     }
 }
@@ -100,9 +86,9 @@ where
 }
 
 impl<T: Barse> Barse for WithEndianWith<T> {
-    type ReadWith = (RuntimeEndian, T::ReadWith);
+    type ReadWith = (Runtime, T::ReadWith);
 
-    type WriteWith = (RuntimeEndian, T::WriteWith);
+    type WriteWith = (Runtime, T::WriteWith);
 
     #[inline]
     fn read<_E, B>(
@@ -114,9 +100,9 @@ impl<T: Barse> Barse for WithEndianWith<T> {
         B: crate::ByteSource,
     {
         match e {
-            RuntimeEndian::Big => T::read::<Big, B>(from, with),
-            RuntimeEndian::Little => T::read::<Little, B>(from, with),
-            RuntimeEndian::Native => T::read::<Native, B>(from, with),
+            Runtime::Big => T::read::<Big, B>(from, with),
+            Runtime::Little => T::read::<Little, B>(from, with),
+            Runtime::Native => T::read::<Native, B>(from, with),
         }
         .map(Self::new)
     }
@@ -132,9 +118,9 @@ impl<T: Barse> Barse for WithEndianWith<T> {
         B: crate::ByteSink,
     {
         match e {
-            RuntimeEndian::Big => T::write::<Big, B>(&self.0, to, with),
-            RuntimeEndian::Little => T::write::<Little, B>(&self.0, to, with),
-            RuntimeEndian::Native => T::write::<Native, B>(&self.0, to, with),
+            Runtime::Big => T::write::<Big, B>(&self.0, to, with),
+            Runtime::Little => T::write::<Little, B>(&self.0, to, with),
+            Runtime::Native => T::write::<Native, B>(&self.0, to, with),
         }
     }
 }

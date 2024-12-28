@@ -4,6 +4,22 @@ use crate::sealed::Sealed;
 
 endian_trait!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 
+/// Endian selected at runtime, does not implement [Endian] trait.
+#[cfg(feature = "util")]
+#[cfg_attr(docsrs, doc(cfg(feature = "util")))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub enum Runtime {
+    /// Use big endian.
+    Big,
+
+    /// Use little endian.
+    Little,
+
+    /// Use platform native endian.
+    #[default]
+    Native,
+}
+
 /// Macro to generate endian trait and impls.
 macro_rules! endian_trait {
     ($($ty:ty),*) => {
