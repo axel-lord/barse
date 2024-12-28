@@ -55,7 +55,7 @@ pub trait ByteSinkExt: ByteSink {
 }
 
 impl<S: ByteSink> ByteSinkExt for S {
-    #[inline(always)]
+    #[inline]
     fn write<T: Barse<WriteWith = ()>, E: Endian>(
         &mut self,
         value: &T,
@@ -63,7 +63,7 @@ impl<S: ByteSink> ByteSinkExt for S {
         T::write::<E, Self>(value, self, ())
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_le<T: Barse<WriteWith = ()>>(
         &mut self,
         value: &T,
@@ -71,7 +71,7 @@ impl<S: ByteSink> ByteSinkExt for S {
         Self::write::<T, Little>(self, value)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_be<T: Barse<WriteWith = ()>>(
         &mut self,
         value: &T,
@@ -79,7 +79,7 @@ impl<S: ByteSink> ByteSinkExt for S {
         Self::write::<T, Big>(self, value)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_ne<T: Barse<WriteWith = ()>>(
         &mut self,
         value: &T,

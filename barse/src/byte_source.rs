@@ -15,7 +15,7 @@ pub trait ByteSource: Sized {
     ///
     /// # Errors
     /// If N bytes cannot be read from source.
-    #[inline(always)]
+    #[inline]
     fn read_array<const N: usize>(&mut self) -> Result<[u8; N], Self::Err> {
         let mut bytes = [0u8; N];
         self.read_slice(&mut bytes)?;
@@ -26,7 +26,7 @@ pub trait ByteSource: Sized {
     ///
     /// # Errors
     /// If the byte cannot be read from source.
-    #[inline(always)]
+    #[inline]
     fn read_byte(&mut self) -> Result<u8, Self::Err> {
         let [byte] = self.read_array()?;
         Ok(byte)
@@ -39,17 +39,17 @@ where
 {
     type Err = Src::Err;
 
-    #[inline(always)]
+    #[inline]
     fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err> {
         Src::read_slice(self, buf)
     }
 
-    #[inline(always)]
+    #[inline]
     fn read_array<const N: usize>(&mut self) -> Result<[u8; N], Self::Err> {
         Src::read_array(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn read_byte(&mut self) -> Result<u8, Self::Err> {
         Src::read_byte(self)
     }

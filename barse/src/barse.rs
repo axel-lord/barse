@@ -118,7 +118,7 @@ macro_rules! integer_impl {
         impl Barse for $ty {
             type ReadWith = ();
             type WriteWith = ();
-            #[inline(always)]
+            #[inline]
             fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, WrappedErr<B::Err>>
             where
                 E: Endian,
@@ -127,7 +127,7 @@ macro_rules! integer_impl {
                     Ok(E :: [< $ty _from_bytes >](from.read_array()?))
             }
 
-            #[inline(always)]
+            #[inline]
             fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), WrappedErr<B::Err>>
             where
                 E: Endian,

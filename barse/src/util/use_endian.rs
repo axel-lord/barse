@@ -15,13 +15,13 @@ where
     T: Barse,
 {
     /// Construct a new [UseEndian] from value.
-    #[inline(always)]
+    #[inline]
     pub const fn new(value: T) -> Self {
         Self(value, PhantomData)
     }
 
     /// Unwrap [UseEndian] to wrapped value.
-    #[inline(always)]
+    #[inline]
     pub fn into_inner(self) -> T {
         let Self(value, _) = self;
         value
@@ -36,7 +36,7 @@ where
     type ReadWith = T::ReadWith;
     type WriteWith = T::WriteWith;
 
-    #[inline(always)]
+    #[inline]
     fn read<_E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         _E: Endian,
@@ -45,7 +45,7 @@ where
         T::read::<E, B>(from, with).map(Self::new)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write<_E, B>(
         &self,
         to: &mut B,

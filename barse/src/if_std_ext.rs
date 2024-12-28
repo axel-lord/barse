@@ -27,7 +27,7 @@ where
 {
     type Err = io::Error;
 
-    #[inline(always)]
+    #[inline]
     fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err> {
         self.0.read_exact(buf)
     }
@@ -37,7 +37,7 @@ impl<T> AsByteSource for T
 where
     T: Read,
 {
-    #[inline(always)]
+    #[inline]
     fn as_byte_source(&mut self) -> impl '_ + ByteSource {
         Reader(self)
     }
@@ -54,7 +54,7 @@ where
 {
     type Err = io::Error;
 
-    #[inline(always)]
+    #[inline]
     fn write_slice(&mut self, buf: &[u8]) -> Result<(), Self::Err> {
         self.0.write_all(buf)
     }
@@ -64,7 +64,7 @@ impl<T> AsByteSink for T
 where
     T: Write,
 {
-    #[inline(always)]
+    #[inline]
     fn as_byte_sink(&mut self) -> impl '_ + ByteSink {
         Writer(self)
     }

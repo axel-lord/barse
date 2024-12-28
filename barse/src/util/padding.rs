@@ -12,7 +12,7 @@ impl<const N: usize, const BYTE: u8> Barse for Padding<N, BYTE> {
     type ReadWith = ();
     type WriteWith = ();
 
-    #[inline(always)]
+    #[inline]
     fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         E: Endian,
@@ -22,7 +22,7 @@ impl<const N: usize, const BYTE: u8> Barse for Padding<N, BYTE> {
         Ok(Self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::WrappedErr<B::Err>>
     where
         E: Endian,

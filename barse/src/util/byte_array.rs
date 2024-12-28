@@ -9,13 +9,13 @@ pub struct ByteArray<const N: usize>([u8; N]);
 
 impl<const N: usize> ByteArray<N> {
     /// Construct a new [ByteArray] from passed bytes.
-    #[inline(always)]
+    #[inline]
     pub const fn new(bytes: [u8; N]) -> Self {
         Self(bytes)
     }
 
     /// Unwrap [ByteArray] to wrapped bytes.
-    #[inline(always)]
+    #[inline]
     pub const fn into_inner(self) -> [u8; N] {
         self.0
     }
@@ -25,7 +25,7 @@ impl<const N: usize> Barse for ByteArray<N> {
     type ReadWith = ();
     type WriteWith = ();
 
-    #[inline(always)]
+    #[inline]
     fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,
@@ -34,7 +34,7 @@ impl<const N: usize> Barse for ByteArray<N> {
         Ok(ByteArray(from.read_array()?))
     }
 
-    #[inline(always)]
+    #[inline]
     fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,

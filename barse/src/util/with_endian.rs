@@ -20,21 +20,21 @@ pub enum RuntimeEndian {
 }
 
 impl From<Big> for RuntimeEndian {
-    #[inline(always)]
+    #[inline]
     fn from(_value: Big) -> Self {
         Self::Big
     }
 }
 
 impl From<Little> for RuntimeEndian {
-    #[inline(always)]
+    #[inline]
     fn from(_value: Little) -> Self {
         Self::Little
     }
 }
 
 impl From<Native> for RuntimeEndian {
-    #[inline(always)]
+    #[inline]
     fn from(_value: Native) -> Self {
         Self::Native
     }
@@ -66,7 +66,7 @@ impl<T: Barse<ReadWith = (), WriteWith = ()>> Barse for WithEndian<T> {
 
     type WriteWith = RuntimeEndian;
 
-    #[inline(always)]
+    #[inline]
     fn read<_E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         _E: crate::Endian,
@@ -80,7 +80,7 @@ impl<T: Barse<ReadWith = (), WriteWith = ()>> Barse for WithEndian<T> {
         .map(Self::new)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write<_E, B>(
         &self,
         to: &mut B,
@@ -125,7 +125,7 @@ impl<T: Barse> Barse for WithEndianWith<T> {
 
     type WriteWith = (RuntimeEndian, T::WriteWith);
 
-    #[inline(always)]
+    #[inline]
     fn read<_E, B>(
         from: &mut B,
         (e, with): Self::ReadWith,
@@ -142,7 +142,7 @@ impl<T: Barse> Barse for WithEndianWith<T> {
         .map(Self::new)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write<_E, B>(
         &self,
         to: &mut B,

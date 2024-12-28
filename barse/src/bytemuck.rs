@@ -16,13 +16,13 @@ where
     T: AnyBitPattern + NoUninit + Barse,
 {
     /// Construct a new [UseAnyBitPattern] from a value.
-    #[inline(always)]
+    #[inline]
     pub const fn new(value: T) -> Self {
         Self(value)
     }
 
     /// Unwrap [UseAnyBitPattern] to wrapped value.
-    #[inline(always)]
+    #[inline]
     pub const fn into_inner(self) -> T {
         let Self(value) = self;
         value
@@ -36,7 +36,7 @@ where
     type ReadWith = ();
     type WriteWith = ();
 
-    #[inline(always)]
+    #[inline]
     fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,
@@ -49,7 +49,7 @@ where
         Ok(Self(value))
     }
 
-    #[inline(always)]
+    #[inline]
     fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), crate::WrappedErr<B::Err>>
     where
         E: crate::Endian,
