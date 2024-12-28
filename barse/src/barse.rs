@@ -2,7 +2,7 @@
 
 use ::core::marker::PhantomData;
 
-use crate::{ByteSink, ByteSource, Endian, Error};
+use crate::{ByteSink, ByteSource, Endian, WrappedErr};
 
 /// Trait to serialize and deserialize from binary data.
 pub trait Barse: Sized {
@@ -16,7 +16,7 @@ pub trait Barse: Sized {
     ///
     /// # Errors
     /// If Soure or implementation errors.
-    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, Error<B::Err>>
+    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource;
@@ -25,7 +25,7 @@ pub trait Barse: Sized {
     ///
     /// # Errors
     /// If Sink or implementation errors.
-    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), Error<B::Err>>
+    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink;
@@ -42,7 +42,7 @@ where
     type ReadWith = ReadWith;
     type WriteWith = WriteWith;
 
-    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, Error<B::Err>>
+    fn read<E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource,
@@ -54,7 +54,7 @@ where
         Ok(values.map(|value| value.expect("all values should be some")))
     }
 
-    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), Error<B::Err>>
+    fn write<E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink,
@@ -71,7 +71,7 @@ impl Barse for () {
 
     type WriteWith = ();
 
-    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, Error<B::Err>>
+    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource,
@@ -79,7 +79,7 @@ impl Barse for () {
         Ok(())
     }
 
-    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), Error<B::Err>>
+    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink,
@@ -93,7 +93,7 @@ impl<T> Barse for PhantomData<T> {
 
     type WriteWith = ();
 
-    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, Error<B::Err>>
+    fn read<E, B>(_from: &mut B, _with: Self::ReadWith) -> Result<Self, WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSource,
@@ -101,7 +101,7 @@ impl<T> Barse for PhantomData<T> {
         Ok(PhantomData)
     }
 
-    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), Error<B::Err>>
+    fn write<E, B>(&self, _to: &mut B, _with: Self::WriteWith) -> Result<(), WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink,
@@ -119,7 +119,7 @@ macro_rules! integer_impl {
             type ReadWith = ();
             type WriteWith = ();
             #[inline(always)]
-            fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, Error<B::Err>>
+            fn read<E, B>(from: &mut B, _with: ()) -> Result<Self, WrappedErr<B::Err>>
             where
                 E: Endian,
                 B: ByteSource,
@@ -128,7 +128,7 @@ macro_rules! integer_impl {
             }
 
             #[inline(always)]
-            fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), Error<B::Err>>
+            fn write<E, B>(&self, to: &mut B, _with: ()) -> Result<(), WrappedErr<B::Err>>
             where
                 E: Endian,
                 B: ByteSink

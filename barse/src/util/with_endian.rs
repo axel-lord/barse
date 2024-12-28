@@ -67,7 +67,7 @@ impl<T: Barse<ReadWith = (), WriteWith = ()>> Barse for WithEndian<T> {
     type WriteWith = RuntimeEndian;
 
     #[inline(always)]
-    fn read<_E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, crate::Error<B::Err>>
+    fn read<_E, B>(from: &mut B, with: Self::ReadWith) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         _E: crate::Endian,
         B: crate::ByteSource,
@@ -81,7 +81,11 @@ impl<T: Barse<ReadWith = (), WriteWith = ()>> Barse for WithEndian<T> {
     }
 
     #[inline(always)]
-    fn write<_E, B>(&self, to: &mut B, with: Self::WriteWith) -> Result<(), crate::Error<B::Err>>
+    fn write<_E, B>(
+        &self,
+        to: &mut B,
+        with: Self::WriteWith,
+    ) -> Result<(), crate::WrappedErr<B::Err>>
     where
         _E: crate::Endian,
         B: crate::ByteSink,
@@ -122,7 +126,10 @@ impl<T: Barse> Barse for WithEndianWith<T> {
     type WriteWith = (RuntimeEndian, T::WriteWith);
 
     #[inline(always)]
-    fn read<_E, B>(from: &mut B, (e, with): Self::ReadWith) -> Result<Self, crate::Error<B::Err>>
+    fn read<_E, B>(
+        from: &mut B,
+        (e, with): Self::ReadWith,
+    ) -> Result<Self, crate::WrappedErr<B::Err>>
     where
         _E: crate::Endian,
         B: crate::ByteSource,
@@ -140,7 +147,7 @@ impl<T: Barse> Barse for WithEndianWith<T> {
         &self,
         to: &mut B,
         (e, with): Self::WriteWith,
-    ) -> Result<(), crate::Error<B::Err>>
+    ) -> Result<(), crate::WrappedErr<B::Err>>
     where
         _E: crate::Endian,
         B: crate::ByteSink,
