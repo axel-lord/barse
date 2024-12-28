@@ -2,6 +2,9 @@
 
 use ::core::{any::TypeId, fmt::Display};
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 /// Crate error type used to report sink/source specific errors and general read/write errors.
 #[derive(Debug)]
 pub enum WrappedErr<E> {
@@ -24,6 +27,18 @@ impl<E> WrappedErr<E> {
     pub const fn from_err(value: Error) -> Self {
         Self::Other(value)
     }
+
+    /// Merge variants into a type which may converted to from both of them.
+    #[inline]
+    pub fn merge_into<T>(self) -> T
+    where
+        T: From<Error> + From<E>,
+    {
+        match self {
+            WrappedErr::Wrapped(err) => err.into(),
+            WrappedErr::Other(err) => err.into(),
+        }
+    }
 }
 
 impl<E> Display for WrappedErr<E>
@@ -40,9 +55,6 @@ where
 
 impl<E> ::core::error::Error for WrappedErr<E> where E: ::core::error::Error {}
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
 /// Crate error type without any source/sink errors.
 #[derive(Debug)]
 #[non_exhaustive]
@@ -55,30 +67,44 @@ pub enum Error {
     Any(TypeId, u64),
 
     /// Error is tracked using a reference to a static [::core::error::Error] implementor.
-    Dyn(&'static dyn ::core::error::Error),
+    Dyn(&'static (dyn ::core::error::Error + Send + Sync)),
 
     #[cfg(feature = "alloc")]
     #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
     /// Error is tracked using a boxed [::core::error::Error].
-    Box(alloc::boxed::Box<dyn ::core::error::Error>),
+    Box(alloc::boxed::Box<dyn ::core::error::Error + Send + Sync>),
 }
 
 impl From<&'static str> for Error {
+    #[inline]
     fn from(value: &'static str) -> Self {
         Self::Msg(value)
     }
 }
 
-impl From<&'static dyn ::core::error::Error> for Error {
-    fn from(value: &'static dyn ::core::error::Error) -> Self {
+impl From<&'static (dyn ::core::error::Error + Send + Sync)> for Error {
+    #[inline]
+    fn from(value: &'static (dyn ::core::error::Error + Send + Sync)) -> Self {
         Self::Dyn(value)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl From<alloc::boxed::Box<dyn ::core::error::Error>> for Error {
-    fn from(value: alloc::boxed::Box<dyn ::core::error::Error>) -> Self {
+impl From<alloc::boxed::Box<dyn ::core::error::Error + Send + Sync>> for Error {
+    #[inline]
+    fn from(value: alloc::boxed::Box<dyn ::core::error::Error + Send + Sync>) -> Self {
         Self::Box(value)
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<Error> for ::std::io::Error {
+    #[inline]
+    fn from(value: Error) -> Self {
+        match value {
+            Error::Box(err) => ::std::io::Error::other(err),
+            err => ::std::io::Error::other(err),
+        }
     }
 }
 
