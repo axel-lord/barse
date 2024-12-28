@@ -305,7 +305,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
             fn read<#endian_ident, #byte_ident>(
                 #from_ident: &mut #byte_ident,
                 #read_with_pat: #read_with_ty
-            ) -> ::core::result::Result<Self, #barse_path::Error::<#byte_ident::Err>>
+            ) -> ::core::result::Result<Self, #barse_path::WrappedErr::<#byte_ident::Err>>
             where
                 #endian_ident: #barse_path::Endian,
                 #byte_ident: #barse_path::ByteSource,
@@ -318,7 +318,7 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 &self,
                 #to_ident: &mut #byte_ident,
                 #write_with_pat: #write_with_ty
-            ) -> ::core::result::Result<(), #barse_path::Error::<#byte_ident::Err>>
+            ) -> ::core::result::Result<(), #barse_path::WrappedErr::<#byte_ident::Err>>
             where
                 #endian_ident: #barse_path::Endian,
                 #byte_ident: #barse_path::ByteSink,
