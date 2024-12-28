@@ -60,7 +60,7 @@ impl<S: ByteSink> ByteSinkExt for S {
         &mut self,
         value: &T,
     ) -> Result<(), WrappedErr<Self::Err>> {
-        T::write::<E, Self>(value, self, ())
+        T::write_with::<E, Self>(value, self, ())
     }
 
     #[inline]
@@ -92,6 +92,6 @@ impl<S: ByteSink> ByteSinkExt for S {
         value: &T,
         with: T::WriteWith,
     ) -> Result<(), WrappedErr<Self::Err>> {
-        T::write::<E, Self>(value, self, with)
+        T::write_with::<E, Self>(value, self, with)
     }
 }
