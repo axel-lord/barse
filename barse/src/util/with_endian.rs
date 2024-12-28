@@ -19,27 +19,6 @@ pub enum RuntimeEndian {
     Native,
 }
 
-impl From<Big> for RuntimeEndian {
-    #[inline]
-    fn from(_value: Big) -> Self {
-        Self::Big
-    }
-}
-
-impl From<Little> for RuntimeEndian {
-    #[inline]
-    fn from(_value: Little) -> Self {
-        Self::Little
-    }
-}
-
-impl From<Native> for RuntimeEndian {
-    #[inline]
-    fn from(_value: Native) -> Self {
-        Self::Native
-    }
-}
-
 /// Wrap a type such that it's [Barse] implementation uses dynamic endianess.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]

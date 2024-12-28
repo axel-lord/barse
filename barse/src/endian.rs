@@ -1,4 +1,4 @@
-//! Trait implementations for endianess.
+//! Trait implementations of [Endian][crate::Endian].
 
 use crate::sealed::Sealed;
 
@@ -9,6 +9,7 @@ macro_rules! endian_trait {
     ($($ty:ty),*) => {
         paste::paste! {
         #[doc = "Trait defining endianess, [Big], [Little] and [Native] is available."]
+        #[doc(hidden)]
         pub trait Endian: Sealed {
             $(
             #[doc = concat!("Convert bytes to ", stringify!($ty)," value.")]
