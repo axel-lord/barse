@@ -40,15 +40,27 @@ where
 
 impl<E> ::core::error::Error for WrappedErr<E> where E: ::core::error::Error {}
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 /// Crate error type without any source/sink errors.
-#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// Error is only a message.
     Msg(&'static str),
 
-    /// Error is tracked using a [TypeId] and a uique id of some kind (perhaps an index into a
+    /// Error is tracked using a [TypeId] and a payload of some kind (perhaps an index into a
     /// list).
     Any(TypeId, u64),
+
+    /// Error is tracked using a reference to a static [::core::error::Error] implementor.
+    Dyn(&'static dyn ::core::error::Error),
+
+    #[cfg(feature = "alloc")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    /// Error is tracked using a boxed [::core::error::Error].
+    Box(alloc::boxed::Box<dyn ::core::error::Error>),
 }
 
 impl From<&'static str> for Error {
@@ -57,11 +69,27 @@ impl From<&'static str> for Error {
     }
 }
 
+impl From<&'static dyn ::core::error::Error> for Error {
+    fn from(value: &'static dyn ::core::error::Error) -> Self {
+        Self::Dyn(value)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl From<alloc::boxed::Box<dyn ::core::error::Error>> for Error {
+    fn from(value: alloc::boxed::Box<dyn ::core::error::Error>) -> Self {
+        Self::Box(value)
+    }
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Error::Msg(msg) => f.write_str(msg),
             Error::Any(type_id, id) => write!(f, "type id error [{type_id:?}], {id}"),
+            Error::Dyn(err) => Display::fmt(err, f),
+            #[cfg(feature = "alloc")]
+            Error::Box(err) => Display::fmt(err, f),
         }
     }
 }
