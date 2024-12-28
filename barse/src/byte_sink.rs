@@ -15,7 +15,7 @@ pub trait ByteSink: Sized {
     ///
     /// # Errors
     /// If bytes cannot be written or sink otherwise fails.
-    #[inline(always)]
+    #[inline]
     fn write_array<const N: usize>(&mut self, bytes: [u8; N]) -> Result<(), Self::Err> {
         self.write_slice(&bytes)
     }
@@ -27,12 +27,12 @@ where
 {
     type Err = Sink::Err;
 
-    #[inline(always)]
+    #[inline]
     fn write_slice(&mut self, buf: &[u8]) -> Result<(), Self::Err> {
         Sink::write_slice(self, buf)
     }
 
-    #[inline(always)]
+    #[inline]
     fn write_array<const N: usize>(&mut self, bytes: [u8; N]) -> Result<(), Self::Err> {
         Sink::write_array(self, bytes)
     }

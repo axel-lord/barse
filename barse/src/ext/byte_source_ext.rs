@@ -42,27 +42,27 @@ pub trait ByteSourceExt: ByteSource {
 }
 
 impl<S: ByteSource> ByteSourceExt for S {
-    #[inline(always)]
+    #[inline]
     fn read<T: Barse<ReadWith = ()>, E: Endian>(&mut self) -> Result<T, WrappedErr<Self::Err>> {
         T::read::<E, Self>(self, ())
     }
 
-    #[inline(always)]
+    #[inline]
     fn read_le<T: Barse<ReadWith = ()>>(&mut self) -> Result<T, WrappedErr<Self::Err>> {
         Self::read::<T, Little>(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn read_be<T: Barse<ReadWith = ()>>(&mut self) -> Result<T, WrappedErr<Self::Err>> {
         Self::read::<T, Big>(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn read_ne<T: Barse<ReadWith = ()>>(&mut self) -> Result<T, WrappedErr<Self::Err>> {
         Self::read::<T, Native>(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn read_with<T: Barse, E: Endian>(
         &mut self,
         with: T::ReadWith,

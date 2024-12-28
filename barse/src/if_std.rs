@@ -10,7 +10,7 @@ where
 {
     type Err = ::std::io::Error;
 
-    #[inline(always)]
+    #[inline]
     fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err> {
         self.read_exact(buf)
     }
