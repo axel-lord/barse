@@ -148,23 +148,32 @@ opt! {
         colon_token: token::Colon,
     },
 
-    /// Read using a specific function.
-    ReadUsing {
+    /// Read using a specific impl.
+    ReadAs {
         /// Opt keyword
-        kw: kw::read_using,
+        kw: kw::read_as,
 
         /// Function path.
-        path: ::syn::Path,
+        as_expr: ::syn::Expr,
     },
 
-    /// Write using a specific function.
-    WriteUsing {
+    /// Write using a specific impl.
+    WriteAs {
         /// Opt keyword
-        kw: kw::read_using,
+        kw: kw::write_as,
 
         /// Function path.
-        path: ::syn::Path,
-    }
+        as_expr: ::syn::Expr,
+    },
+
+    /// Read/Write using a specific impl.
+    BarseAs {
+        /// Opt keyword
+        kw: token::As,
+
+        /// Function path.
+        as_expr: ::syn::Expr,
+    },
 }
 
 opt_lite! {

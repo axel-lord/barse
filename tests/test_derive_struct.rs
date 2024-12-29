@@ -1,7 +1,7 @@
 //! Struct Derive tests.
 #![allow(dead_code)]
 
-use ::barse::Barse;
+use ::barse::{Barse, ReadAs, WriteAs};
 
 #[derive(Barse)]
 struct Simple {
@@ -51,6 +51,47 @@ struct AlwaysLittle<T>(#[barse(with)] T);
     endian = E,
 )]
 struct WithEndian<T, E>(#[barse(with)] T, #[barse(ignore)] PhantomData<fn() -> E>);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct SizedVec;
+
+impl ReadAs<Vec<i32>, u16> for SizedVec {
+    fn read_with<E, B>(self, from: &mut B, with: u16) -> Result<Vec<i32>, barse::WrappedErr<B::Err>>
+    where
+        E: barse::Endian,
+        B: barse::ByteSource,
+    {
+        (0..with)
+            .map(|_| from.read::<_, E>())
+            .collect::<Result<Vec<_>, _>>()
+    }
+}
+
+impl WriteAs<Vec<i32>, ()> for SizedVec {
+    fn write_with<E, B>(
+        self,
+        value: &Vec<i32>,
+        to: &mut B,
+        _with: (),
+    ) -> Result<(), barse::WrappedErr<B::Err>>
+    where
+        E: barse::Endian,
+        B: barse::ByteSink,
+    {
+        for item in value {
+            to.write::<_, E>(item)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Barse)]
+struct PrefixedVec {
+    size: u16,
+    #[barse(as SizedVec)]
+    #[barse(read_with = size)]
+    vec: Vec<i32>,
+}
 
 /// Basic test.
 #[test]
