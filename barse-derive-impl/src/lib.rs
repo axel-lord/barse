@@ -22,8 +22,8 @@ mod kw {
     custom_keyword!(bytes);
     custom_keyword!(read_bytes);
     custom_keyword!(write_bytes);
-    custom_keyword!(read_using);
-    custom_keyword!(write_using);
+    custom_keyword!(read_as);
+    custom_keyword!(write_as);
 }
 
 mod barse_enum;

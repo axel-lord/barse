@@ -35,11 +35,14 @@ opt::opt_parser! {
         /// Write bytes.
         write_bytes: opt::WriteBytes,
 
-        /// Read using provided function.
-        read_using: opt::ReadUsing,
+        /// Read using provided impl.
+        read_as: opt::ReadAs,
 
-        /// Write using provided function.
-        wrtie_using: opt::WriteUsing,
+        /// Write using provided impl.
+        write_as: opt::WriteAs,
+
+        /// Read/Write using provided impl.
+        barse_as: opt::BarseAs,
     },
 
     /// Struct configuration.
@@ -178,8 +181,14 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     .or(endian.as_ref())
                     .map_or_else(|| Either::A(&endian_ident), |e| Either::B(&e.endian));
 
-                quote! {
-                    let #name = <#ty as #barse_path::Barse>::read_with::<#e, #byte_ident>(#from_ident, #read_with)?;
+                if let Some(using) = cfg.read_as.as_deref().or(cfg.barse_as.as_deref()) {
+                    quote! {
+                        let #name = #barse_path::ReadAs::<#ty, _>::read_with::<#e, #byte_ident>({ #using }, #from_ident, #read_with)?;
+                    }
+                } else {
+                    quote! {
+                        let #name = <#ty as #barse_path::Barse>::read_with::<#e, #byte_ident>(#from_ident, #read_with)?;
+                    }
                 }
             }
         })
@@ -238,8 +247,14 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     .or(endian.as_ref())
                     .map_or_else(|| Either::A(&endian_ident), |e| Either::B(&e.endian));
 
-                quote! {
-                    <#ty as #barse_path::Barse>::write_with::<#e, #byte_ident>(#name, #to_ident, #write_with)?;
+                if let Some(using) =cfg.write_as.as_deref().or(cfg.barse_as.as_deref()) {
+                    quote! {
+                        #barse_path::WriteAs::<#ty, _>::write_with::<#e, #byte_ident>({ #using }, #name, #to_ident, #write_with)?;
+                    }
+                } else {
+                    quote! {
+                        <#ty as #barse_path::Barse>::write_with::<#e, #byte_ident>(#name, #to_ident, #write_with)?;
+                    }
                 }
             }
         })
