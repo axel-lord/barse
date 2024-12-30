@@ -9,6 +9,9 @@ homepage = "https://github.com/axel-lord/barse"
 readme = "./README.md"
 description = "Procedural macros for barse."
 
+[features]
+barse_as = ["barse-derive-impl/barse_as"]
+
 [lib]
 proc-macro = true
 

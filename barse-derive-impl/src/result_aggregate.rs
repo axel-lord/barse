@@ -1,6 +1,8 @@
 //! Syn errors may be combined, this module provides a type for easily collecting syn
 //! results/errors without short-circuiting.
 
+use crate::opt::Opt;
+
 /// Result aggregate either a vec of valid values or a combined error value.
 /// Once a single error has been added, additions of valid values does nothing.
 #[derive(Clone, Debug)]
@@ -17,12 +19,36 @@ impl<T> ResAggr<T> {
         }
     }
 
+    /// Check for option conflict.
+    pub fn conflict<A: Opt, B: Opt>(&mut self, a: &Option<A>, b: &Option<B>) -> &mut Self {
+        if let (Some(a), Some(_)) = (a, b) {
+            self.push_err(::syn::Error::new(
+                a.kw_span(),
+                format!(
+                    "attributes '{}' and '{}' should not be used together",
+                    A::name(),
+                    B::name()
+                ),
+            ));
+        };
+
+        self
+    }
+
     /// Convert into inner result.
     ///
     /// # Errors
     /// If any error was pushed to aggregate.
     pub fn into_inner(self) -> Result<Vec<T>, ::syn::Error> {
         self.inner
+    }
+
+    /// Ad a result.
+    pub fn push(&mut self, value: Result<T, ::syn::Error>) {
+        match value {
+            Ok(value) => self.push_value(value),
+            Err(err) => self.push_err(err),
+        }
     }
 
     /// Add an error.
