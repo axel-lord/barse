@@ -6,7 +6,7 @@ use ::syn::{
     parse_quote, punctuated::Punctuated, GenericParam, Generics, ItemStruct, Token, WhereClause,
 };
 
-use crate::{opt, path_expr, Either};
+use crate::{opt, path_expr, result_aggregate::ResAggr, Either};
 
 opt::opt_parser! {
     /// Struct field configuration.
@@ -88,6 +88,8 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         endian,
     } = StructConfig::default().parse_attrs(&item.attrs)?;
 
+    let mut aggr = ResAggr::<()>::new();
+
     let name = &item.ident;
     let field_prefix = field_prefix.map_or_else(
         || match item.fields {
@@ -122,8 +124,20 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         .fields
         .iter()
         .enumerate()
-        .map(|(i, field)| {
-            let cfg = FieldConfig::default().parse_attrs(&field.attrs)?;
+        .filter_map(|(i, field)| {
+            let cfg = match FieldConfig::default().parse_attrs(&field.attrs) {
+                Ok(cfg) => cfg,
+                Err(err) => {
+                    aggr.push_err(err);
+                    return None;
+                }
+            };
+
+            aggr.conflict(&cfg.read_with, &cfg.with)
+                .conflict(&cfg.write_with, &cfg.with)
+                .conflict(&cfg.read_as, &cfg.barse_as)
+                .conflict(&cfg.write_as, &cfg.barse_as);
+
             let name = field.ident.as_ref().map_or_else(
                 || {
                     field_prefix.as_ref().map_or_else(
@@ -138,9 +152,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                     )
                 },
             );
-            Ok((field, cfg, name))
+            Some((field, cfg, name))
         })
-        .collect::<Result<Vec<_>, ::syn::Error>>()?;
+        .collect::<Vec<_>>();
 
     let read_body = fields
         .iter()
@@ -310,6 +324,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
 
     let read_with_ty = &read_with.ty;
     let write_with_ty = &write_with.ty;
+
+    // Error if any minor errors encountered.
+    aggr.into_inner()?;
 
     Ok(quote! {
         #[automatically_derived]

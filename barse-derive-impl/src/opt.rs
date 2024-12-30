@@ -14,6 +14,7 @@ use quote::ToTokens;
 use crate::{
     kw,
     opt::opt_macro::{opt, opt_lite},
+    result_aggregate::ResAggr,
 };
 
 mod opt_macro;
@@ -326,23 +327,17 @@ pub fn parse_attrs(
         f(meta_list.tokens.clone())?;
         Ok(())
     };
-    let mut errors = Vec::new();
+    let mut aggr = ResAggr::<()>::new();
     for attr in attrs {
         if !attr.path().is_ident("barse") {
             continue;
         }
 
         if let Err(err) = parse_attr(attr) {
-            errors.push(err);
+            aggr.push_err(err);
         }
     }
-    errors
-        .into_iter()
-        .reduce(|mut acc, err| {
-            acc.combine(err);
-            acc
-        })
-        .map_or(Ok(()), Err)
+    aggr.into_inner().map(|_| ())
 }
 
 /// Option trait.
