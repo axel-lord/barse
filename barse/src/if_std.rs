@@ -2,11 +2,7 @@
 
 use ::std::io::{Cursor, Read, Write};
 
-use crate::{
-    endian::Native,
-    ext::{AsByteSink, AsByteSource},
-    Barse, ByteSink, ByteSource,
-};
+use crate::{ByteSink, ByteSource};
 
 impl<A> ByteSource for Cursor<A>
 where
@@ -39,12 +35,13 @@ where
 /// Or if the bytes resulting from it cannot be written.
 pub fn write_value<T, W>(value: &T, mut to: W) -> ::std::io::Result<()>
 where
-    T: Barse<WriteWith = ()>,
+    T: crate::Barse<WriteWith = ()>,
     W: ::std::io::Write,
 {
-    use crate::WrappedErr;
+    use crate::{ext::AsByteSink, WrappedErr};
 
-    T::write_with::<Native, _>(value, &mut to.as_byte_sink(), ()).map_err(WrappedErr::merge_into)
+    T::write_with::<crate::endian::Native, _>(value, &mut to.as_byte_sink(), ())
+        .map_err(WrappedErr::merge_into)
 }
 
 #[cfg(feature = "ext")]
@@ -55,10 +52,11 @@ where
 /// Or if the bytes needed cannot be read.
 pub fn read_value<T, R>(mut from: R) -> ::std::io::Result<T>
 where
-    T: Barse<ReadWith = ()>,
+    T: crate::Barse<ReadWith = ()>,
     R: ::std::io::Read,
 {
-    use crate::WrappedErr;
+    use crate::{ext::AsByteSource, WrappedErr};
 
-    T::read_with::<Native, _>(&mut from.as_byte_source(), ()).map_err(WrappedErr::merge_into)
+    T::read_with::<crate::endian::Native, _>(&mut from.as_byte_source(), ())
+        .map_err(WrappedErr::merge_into)
 }
