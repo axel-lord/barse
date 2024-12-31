@@ -175,6 +175,39 @@ opt! {
         /// Function path.
         as_expr: ::syn::Expr,
     },
+
+    /// Variant condition.
+    VariantIf {
+        /// Opt keyword.
+        kw: token::If,
+
+        /// Condition.
+        cond: Token![=],
+    },
+
+    /// Enum is read/written as discriminant + data.
+    EnumDiscriminant {
+        /// Opt keyword.
+        kw: kw::discriminant,
+
+        /// '=' token.
+        eq_token: Token![=],
+
+        /// Type type of discriminant.
+        ty: ::syn::Type,
+    },
+
+    /// Variant discriminant override.
+    VariantDiscriminant {
+        /// Opt keyword.
+        kw: kw::discriminant,
+
+        /// '=' token.
+        eq_token: Token![=],
+
+        /// Discriminant value.
+        value: ::syn::Expr,
+    }
 }
 
 opt_lite! {

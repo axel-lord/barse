@@ -24,6 +24,7 @@ mod kw {
     custom_keyword!(write_bytes);
     custom_keyword!(read_as);
     custom_keyword!(write_as);
+    custom_keyword!(discriminant);
 }
 
 mod barse_enum;
@@ -33,6 +34,8 @@ mod barse_struct;
 mod opt;
 
 mod result_aggregate;
+
+pub mod barse_field;
 
 /// Derive barse for a struct or enum.
 pub fn derive_barse(item: TokenStream) -> TokenStream {
