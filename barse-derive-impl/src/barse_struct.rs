@@ -90,6 +90,9 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
 
     let mut aggr = ResAggr::<()>::new();
 
+    aggr.conflict(&read_with, &with)
+        .conflict(&write_with, &with);
+
     let name = &item.ident;
     let field_prefix = field_prefix.map_or_else(
         || match item.fields {
@@ -137,6 +140,13 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
                 .conflict(&cfg.write_with, &cfg.with)
                 .conflict(&cfg.read_as, &cfg.barse_as)
                 .conflict(&cfg.write_as, &cfg.barse_as);
+
+            if cfg!(not(feature = "barse_as")) {
+                const BARSE_AS: &str = "barse_as";
+                aggr.requires_feature(BARSE_AS, &cfg.barse_as)
+                    .requires_feature(BARSE_AS, &cfg.read_as)
+                    .requires_feature(BARSE_AS, &cfg.write_as);
+            }
 
             let name = field.ident.as_ref().map_or_else(
                 || {
