@@ -31,7 +31,7 @@ where
 /// Write a value using native endian to a [Write] implementor.
 ///
 /// # Errors
-/// If [Barse] implementation errors.
+/// If [Barse][crate::Barse] implementation errors.
 /// Or if the bytes resulting from it cannot be written.
 pub fn write_value<T, W>(value: &T, mut to: W) -> ::std::io::Result<()>
 where
@@ -48,7 +48,7 @@ where
 /// Read a value using native endian from a [Read] implementor.
 ///
 /// # Errors
-/// If [Barse] implementation errors.
+/// If [Barse][crate::Barse] implementation errors.
 /// Or if the bytes needed cannot be read.
 pub fn read_value<T, R>(mut from: R) -> ::std::io::Result<T>
 where

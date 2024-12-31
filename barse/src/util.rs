@@ -1,14 +1,11 @@
 //! Helper types implementing [Barse][crate::Barse] for common usages.
 
 pub use self::{
-    byte_array::ByteArray,
-    fixed_size::FixedSize,
-    padding::Padding,
-    slice_sink::{SliceSink, SliceSinkFull},
-    slice_source::{SliceSrc, SliceSrcEmpty},
-    use_endian::UseEndian,
-    with_endian::WithEndian,
+    byte_array::ByteArray, fixed_size::FixedSize, padding::Padding, slice_sink::SliceSink,
+    slice_source::SliceSrc, use_endian::UseEndian, with_endian::WithEndian,
 };
+
+pub mod error;
 
 mod byte_array;
 
@@ -23,3 +20,5 @@ mod slice_sink;
 mod with_endian;
 
 mod fixed_size;
+
+mod bytes;

@@ -60,7 +60,7 @@ impl<T, const SIZE: usize, const PAD: u8> FixedSize<T, SIZE, PAD> {
         Self(value)
     }
 
-    /// Unwrap [UseEndian] to wrapped value.
+    /// Unwrap [FixedSize] to wrapped value.
     #[inline]
     pub fn into_inner(self) -> T {
         let Self(value) = self;

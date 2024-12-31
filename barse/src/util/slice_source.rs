@@ -1,8 +1,6 @@
 //! [SliceSrc] implementation.
 
-use ::core::fmt::Display;
-
-use crate::ByteSource;
+use crate::{util::error::SliceSrcEmpty, ByteSource};
 
 /// [ByteSource] implementor wrapping a slice.
 ///
@@ -21,25 +19,6 @@ impl<'src> SliceSrc<'src> {
     /// Create a new [SliceSrc] backed by given slice.
     pub const fn new(slice: &'src [u8]) -> Self {
         Self { slice, head: 0 }
-    }
-}
-
-/// Error returned by [ByteSource] implementation for [SliceSrc] when bytes cannot be read.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SliceSrcEmpty;
-
-impl Display for SliceSrcEmpty {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("a value was too large to be read from remaining length at head of SliceSrc")
-    }
-}
-
-impl ::core::error::Error for SliceSrcEmpty {}
-
-impl From<SliceSrcEmpty> for crate::Error {
-    fn from(_value: SliceSrcEmpty) -> Self {
-        static ERR: SliceSrcEmpty = SliceSrcEmpty;
-        crate::Error::Dyn(&ERR)
     }
 }
 
