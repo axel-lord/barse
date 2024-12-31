@@ -35,6 +35,17 @@ impl<T> ResAggr<T> {
         self
     }
 
+    /// Add an error message indicating a required feature is missing if the option is set.
+    pub fn requires_feature<O: Opt>(&mut self, feature: &str, opt: &Option<O>) -> &mut Self {
+        if let Some(opt) = opt {
+            self.push_err(::syn::Error::new(
+                opt.kw_span(),
+                format!("attribute '{}' requires the '{feature}' feature", O::name()),
+            ));
+        }
+        self
+    }
+
     /// Convert into inner result.
     ///
     /// # Errors
