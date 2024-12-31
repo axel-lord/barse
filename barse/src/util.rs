@@ -2,10 +2,12 @@
 
 pub use self::{
     byte_array::ByteArray,
+    fixed_size::FixedSize,
     padding::Padding,
     slice_sink::{SliceSink, SliceSinkFull},
     slice_source::{SliceSrc, SliceSrcEmpty},
     use_endian::UseEndian,
+    with_endian::WithEndian,
 };
 
 mod byte_array;
@@ -18,4 +20,6 @@ mod slice_source;
 
 mod slice_sink;
 
-pub mod with_endian;
+mod with_endian;
+
+mod fixed_size;
