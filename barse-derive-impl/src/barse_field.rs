@@ -2,10 +2,9 @@
 
 use ::proc_macro2::{Span, TokenStream};
 use ::quote::{format_ident, ToTokens};
-use ::syn::punctuated::Punctuated;
 use quote::quote;
 
-use crate::{opt, result_aggregate::ResAggr, Either};
+use crate::{impl_idents::ImplIdents, opt, result_aggregate::ResAggr, unit_expr, Either};
 
 opt::opt_parser! {
     /// Struct field configuration.
@@ -64,20 +63,8 @@ pub struct FieldDeps<'a> {
     /// Field prefix, may be set to avoid collisions with globals.
     pub field_prefix: Option<&'a ::syn::Ident>,
 
-    /// Identifier for from param.
-    pub from_ident: &'a ::syn::Ident,
-
-    /// Identifier for to param.
-    pub to_ident: &'a ::syn::Ident,
-
     /// Path to barse crate/module.
     pub barse_path: &'a ::syn::Path,
-
-    /// Byte source/sink generic param ident.
-    pub byte_ident: &'a ::syn::Ident,
-
-    /// Endian generic param ident.
-    pub endian_ident: &'a ::syn::Ident,
 
     /// With expression used when 'read_with' is used alone.
     pub read_with_expr: &'a ::syn::Expr,
@@ -87,6 +74,9 @@ pub struct FieldDeps<'a> {
 
     /// Endian path.
     pub endian: Option<&'a ::syn::Path>,
+
+    /// Impl idents.
+    pub impl_idents: &'a ImplIdents,
 }
 
 impl ProcessedFields {
@@ -100,20 +90,22 @@ impl ProcessedFields {
         } = &mut f;
         let FieldDeps {
             field_prefix,
-            from_ident,
             barse_path,
-            byte_ident,
             read_with_expr,
             endian,
-            endian_ident,
-            to_ident,
             write_with_expr,
+            impl_idents:
+                ImplIdents {
+                    _r,
+                    endian_ident,
+                    byte_ident,
+                    with_ident: _,
+                    to_ident,
+                    from_ident,
+                    discriminant_ident: _,
+                },
         } = deps;
-        let default_expr = ::syn::Expr::Tuple(::syn::ExprTuple {
-            attrs: Vec::new(),
-            paren_token: ::syn::token::Paren::default(),
-            elems: Punctuated::default(),
-        });
+        let default_expr = unit_expr();
 
         for (i, field) in fields.iter().enumerate() {
             let cfg = match FieldConfig::default().parse_attrs(&field.attrs) {

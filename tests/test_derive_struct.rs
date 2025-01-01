@@ -93,6 +93,14 @@ struct PrefixedVec {
     vec: Vec<i32>,
 }
 
+#[derive(Barse)]
+#[barse(discriminant = u64)]
+#[repr(u8)]
+enum EitherInt {
+    Signed(i64) = 1,
+    Unsigned(u64) = 2,
+}
+
 /// Basic test.
 #[test]
 fn basic() {

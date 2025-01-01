@@ -20,17 +20,6 @@ use crate::{
 mod opt_macro;
 
 opt! {
-    /// Path to barse module.
-    BarsePath {
-        /// Opt keyword.
-        kw: kw::barse_path,
-
-        /// '=' token.
-        eq_token: Token![=],
-
-        /// Path to Barse trait.
-        path: ::syn::Path,
-    },
     /// With pattern of type.
     With {
         /// Opt keyword.
@@ -182,7 +171,7 @@ opt! {
         kw: token::If,
 
         /// Condition.
-        cond: Token![=],
+        cond: ::syn::Expr,
     },
 
     /// Enum is read/written as discriminant + data.
@@ -211,6 +200,18 @@ opt! {
 }
 
 opt_lite! {
+    /// Path to barse module.
+    BarsePath {
+        /// Opt keyword.
+        kw: kw::barse_path,
+
+        /// '=' token.
+        eq_token: Token![=],
+
+        /// Path to Barse trait.
+        path: ::syn::Path,
+    },
+
     /// Option to ignore a field.
     IgnoreField {
         /// Opt keyword.
@@ -263,6 +264,16 @@ opt_lite! {
 
         /// Type of pattern.
         ty: ::syn::Type,
+    }
+}
+
+impl Parse for BarsePath {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            kw: input.parse()?,
+            eq_token: input.parse()?,
+            path: input.call(::syn::Path::parse_mod_style)?,
+        })
     }
 }
 

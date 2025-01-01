@@ -3,11 +3,13 @@
 use ::proc_macro2::TokenStream;
 use ::quote::{format_ident, quote};
 use ::syn::{
-    parse_quote, punctuated::Punctuated, GenericParam, Generics, ItemStruct, Token, WhereClause,
+    parse::Parser as _, parse_quote, punctuated::Punctuated, GenericParam, Generics, ItemStruct,
+    Token, WhereClause,
 };
 
 use crate::{
     barse_field::{FieldDeps, ProcessedFields},
+    impl_idents::ImplIdents,
     opt, path_expr,
     result_aggregate::ResAggr,
     Either,
@@ -70,24 +72,33 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         },
         |f| Some(f.field_prefix),
     );
-    let barse_path = barse_path.map_or_else(|| parse_quote!(::barse), |p| p.path);
+    let barse_path = barse_path.map_or_else(
+        || {
+            ::syn::Path::parse_mod_style
+                .parse2(quote! {::barse})
+                .expect("::barse should be a valid path")
+        },
+        |p| p.path,
+    );
 
-    let r = ::rand::random::<u32>();
+    let impl_idents @ ImplIdents {
+        _r,
+        endian_ident,
+        byte_ident,
+        with_ident,
+        to_ident,
+        from_ident,
+        discriminant_ident: _,
+    } = &ImplIdents::new();
 
-    let endian_ident = format_ident!("__E_{r:X}");
-    let byte_ident = format_ident!("__B_{r:X}");
-    let with_ident = format_ident!("__with_{r:x}");
-    let to_ident = format_ident!("__to_{r:x}");
-    let from_ident = format_ident!("__from_{r:x}");
-
-    let default_with = with.map_or_else(|| parse_quote!(#with_ident: ()), |w| w.with_pat);
+    let default_with = with.map_or_else(|| impl_idents.default_with(), |w| w.with_pat);
 
     let read_with = read_with.as_deref().unwrap_or(&default_with);
-    let read_with_pat = read_with.pat.as_deref().unwrap_or(&with_ident);
+    let read_with_pat = read_with.pat.as_deref().unwrap_or(with_ident);
     let read_with_expr = path_expr(read_with_pat.clone());
 
     let write_with = write_with.as_deref().unwrap_or(&default_with);
-    let write_with_pat = write_with.pat.as_deref().unwrap_or(&with_ident);
+    let write_with_pat = write_with.pat.as_deref().unwrap_or(with_ident);
     let write_with_expr = path_expr(write_with_pat.clone());
 
     let ProcessedFields {
@@ -98,14 +109,11 @@ pub fn derive_barse_struct(mut item: ItemStruct) -> Result<TokenStream, ::syn::E
         &item.fields,
         FieldDeps {
             field_prefix: field_prefix.as_ref(),
-            from_ident: &from_ident,
-            to_ident: &to_ident,
             barse_path: &barse_path,
-            byte_ident: &byte_ident,
-            endian_ident: &endian_ident,
             read_with_expr: &read_with_expr,
             write_with_expr: &write_with_expr,
             endian: endian.as_deref(),
+            impl_idents,
         },
         &mut aggr,
     );

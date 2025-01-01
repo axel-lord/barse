@@ -2,7 +2,10 @@
 
 use ::proc_macro2::TokenStream;
 use ::quote::ToTokens;
-use ::syn::{spanned::Spanned, DataEnum, DataStruct, DeriveInput, ItemEnum, ItemStruct};
+use ::syn::{
+    punctuated::Punctuated, spanned::Spanned, DataEnum, DataStruct, DeriveInput, ItemEnum,
+    ItemStruct,
+};
 
 use crate::{barse_enum::derive_barse_enum, barse_struct::derive_barse_struct};
 
@@ -35,7 +38,9 @@ mod opt;
 
 mod result_aggregate;
 
-pub mod barse_field;
+mod barse_field;
+
+mod impl_idents;
 
 /// Derive barse for a struct or enum.
 pub fn derive_barse(item: TokenStream) -> TokenStream {
@@ -52,6 +57,23 @@ fn path_expr(path: impl Into<::syn::Path>) -> ::syn::Expr {
         path: path.into(),
     }
     .into()
+}
+
+/// Get a unit expression '()' instance.
+fn unit_expr() -> ::syn::Expr {
+    ::syn::Expr::Tuple(::syn::ExprTuple {
+        attrs: Vec::new(),
+        paren_token: ::syn::token::Paren::default(),
+        elems: Punctuated::default(),
+    })
+}
+
+/// Get a unit type '()' instance.
+fn unit_ty() -> ::syn::Type {
+    ::syn::Type::Tuple(::syn::TypeTuple {
+        paren_token: ::syn::token::Paren::default(),
+        elems: Punctuated::new(),
+    })
 }
 
 /// ToTokens implementor that may be one of two types.
