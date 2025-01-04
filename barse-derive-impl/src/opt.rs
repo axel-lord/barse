@@ -196,10 +196,17 @@ opt! {
 
         /// Discriminant value.
         value: ::syn::Expr,
-    }
-}
+    },
 
-opt_lite! {
+    /// Error module path.
+    ErrorModName {
+        /// '=' token.
+        kw: token::Eq,
+
+        /// Path.
+        name: ::syn::Ident,
+    },
+
     /// Path to barse module.
     BarsePath {
         /// Opt keyword.
@@ -209,6 +216,7 @@ opt_lite! {
         eq_token: Token![=],
 
         /// Path to Barse trait.
+        #[call ::syn::Path::parse_mod_style]
         path: ::syn::Path,
     },
 
@@ -218,17 +226,10 @@ opt_lite! {
         kw: kw::ignore,
 
         /// Expression used instead of default().
+        #[opt Token![=]]
         value: Option<IgnoreFieldValue>,
     },
 
-    /// Option to set a custom where clause.
-    CustomWhere {
-        /// Opt keyword.
-        kw: token::Where,
-
-        /// Where predicates.
-        predicates: Punctuated<WherePredicate, Token![,]>,
-    },
 
     /// Option to forward or use an expression for field with.
     FieldWith {
@@ -236,6 +237,7 @@ opt_lite! {
         kw: kw::with,
 
         /// With expression to use.
+        #[opt Token![=]]
         expr: Option<FieldWithExpr>,
     },
 
@@ -245,6 +247,7 @@ opt_lite! {
         kw: kw::read_with,
 
         /// With expression to use.
+        #[opt Token![=]]
         expr: Option<FieldWithExpr>,
     },
 
@@ -254,9 +257,33 @@ opt_lite! {
         kw: kw::write_with,
 
         /// With expression to use.
+        #[opt Token![=]]
         expr: Option<FieldWithExpr>,
     },
 
+
+    /// Expose error module.
+    ErrorMod {
+        /// Opt keyword.
+        kw: kw::err_mod,
+
+        /// Name of module.
+        #[opt Token![=]]
+        name: Option<ErrorModName>,
+    },
+
+    /// Option to set a custom where clause.
+    CustomWhere {
+        /// Opt keyword.
+        kw: token::Where,
+
+        /// Where predicates.
+        #[call Punctuated::parse_terminated]
+        predicates: Punctuated<WherePredicate, Token![,]>,
+    },
+}
+
+opt_lite! {
     /// With pattern for types.
     WithPat {
         /// Optional pattern.
@@ -264,78 +291,7 @@ opt_lite! {
 
         /// Type of pattern.
         ty: ::syn::Type,
-    }
-}
-
-impl Parse for BarsePath {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            kw: input.parse()?,
-            eq_token: input.parse()?,
-            path: input.call(::syn::Path::parse_mod_style)?,
-        })
-    }
-}
-
-impl Parse for IgnoreField {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            kw: input.parse()?,
-            value: if input.peek(Token![=]) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-        })
-    }
-}
-
-impl Parse for CustomWhere {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            kw: input.parse()?,
-            predicates: input.call(Punctuated::parse_terminated)?,
-        })
-    }
-}
-
-impl Parse for FieldWith {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            kw: input.parse()?,
-            expr: if input.peek(Token![=]) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-        })
-    }
-}
-
-impl Parse for FieldReadWith {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            kw: input.parse()?,
-            expr: if input.peek(Token![=]) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-        })
-    }
-}
-
-impl Parse for FieldWriteWith {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            kw: input.parse()?,
-            expr: if input.peek(Token![=]) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-        })
-    }
+    },
 }
 
 impl Parse for WithPat {

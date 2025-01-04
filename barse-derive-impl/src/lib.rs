@@ -28,6 +28,7 @@ mod kw {
     custom_keyword!(read_as);
     custom_keyword!(write_as);
     custom_keyword!(discriminant);
+    custom_keyword!(err_mod);
 }
 
 mod barse_enum;
