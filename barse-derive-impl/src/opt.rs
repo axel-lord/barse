@@ -11,11 +11,7 @@ use ::syn::{
 };
 use quote::ToTokens;
 
-use crate::{
-    kw,
-    opt::opt_macro::{opt, opt_lite},
-    result_aggregate::ResAggr,
-};
+use crate::{kw, opt::opt_macro::opt, result_aggregate::ResAggr};
 
 mod opt_macro;
 
@@ -281,10 +277,9 @@ opt! {
         [call Punctuated::parse_terminated]
         predicates: Punctuated<WherePredicate, Token![,]>,
     },
-}
 
-opt_lite! {
     /// With pattern for types.
+    [parser parse_with_pat]
     WithPat {
         /// Optional pattern.
         pat: Option<WithPatPat>,
@@ -294,20 +289,22 @@ opt_lite! {
     },
 }
 
-impl Parse for WithPat {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let err = |err: ::syn::Error| {
-            ::syn::Error::new(err.span(), "expected either 'pattern: Type' or 'Type'")
-        };
-        Ok(Self {
-            pat: if input.peek(::syn::Ident) && input.peek2(Token![:]) && !input.peek3(Token![:]) {
-                Some(input.parse().map_err(err)?)
-            } else {
-                None
-            },
-            ty: input.parse().map_err(err)?,
-        })
-    }
+/// Parse a [WithPat].
+///
+/// # Errors
+/// On failure to parse.
+fn parse_with_pat(input: ParseStream) -> syn::Result<WithPat> {
+    let err = |err: ::syn::Error| {
+        ::syn::Error::new(err.span(), "expected either 'pattern: Type' or 'Type'")
+    };
+    Ok(WithPat {
+        pat: if input.peek(::syn::Ident) && input.peek2(Token![:]) && !input.peek3(Token![:]) {
+            Some(input.parse().map_err(err)?)
+        } else {
+            None
+        },
+        ty: input.parse().map_err(err)?,
+    })
 }
 
 /// Parse barse attributes and run given function on tokens.

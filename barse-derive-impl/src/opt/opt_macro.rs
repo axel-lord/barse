@@ -4,6 +4,7 @@
 macro_rules! opt {
     ($(
         $(#[doc = $sdoc:expr])*
+        $([parser $par:path])?
         $nm:ident {$(
             $(#[doc = $fdoc:expr])*
             $([attr $attr:ident])?
@@ -21,19 +22,50 @@ macro_rules! opt {
 
         $crate::opt::opt_macro::impl_opt_trait!($nm $(, $f_nm: $f_ty)*);
         $crate::opt::opt_macro::impl_deref_into!($nm $(,$([attr $attr])? $f_nm: $f_ty)*);
+        $crate::opt::opt_macro::impl_parse!(
+            $(@parser $par,)*
+            $nm,
+            $(
+            $f_nm,
+            {
+                $(opt: $e,)*
+                $(call: $p,)*
+            },
+            )*
+        );
 
         impl ToTokens for $nm {
             fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
                 $(self.$f_nm.to_tokens(tokens);)*
             }
         }
+    )*};
+}
 
+/// Implement parse for type.
+macro_rules! impl_parse {
+    (@parser $p:path, $nm:ident, $($_tt:tt)*) => {
         impl Parse for $nm {
-            fn parse(input: ParseStream) -> syn::Result<Self> {
-                Ok(Self { $($f_nm: $crate::opt::opt_macro::parse_field!(input $(, opt = $e)* $(, call = $p)* ),)* })
+            fn parse(input: ParseStream) -> ::syn::Result<Self> {
+                $p(input)
             }
         }
-    )*};
+    };
+    (
+        $nm:ident,
+        $($f_nm:ident, {
+            $(opt: $e:expr,)?
+            $(call: $p:path,)?
+        },)*
+    ) => {
+        impl Parse for $nm {
+            fn parse(input: ParseStream) -> ::syn::Result<Self> {
+                Ok(Self {$(
+                    $f_nm: $crate::opt::opt_macro::parse_field!(input $(, opt = $e)* $(, call = $p)*),
+                )*})
+            }
+        }
+    };
 }
 
 /// Parse for field.
@@ -51,34 +83,6 @@ macro_rules! parse_field {
     ($input:expr) => {
         $input.parse()?
     };
-}
-
-/// Generate option struct without parse impl.
-macro_rules! opt_lite {
-    ($(
-        $(#[doc = $sdoc:expr])*
-        $nm:ident {$(
-            $(#[doc = $fdoc:expr])*
-            $([attr $attr:ident])?
-            $f_nm:ident: $f_ty:ty,
-        )*}
-    ),* $(,)?) => {$(
-        #[derive(Debug, Clone)]
-        $(#[doc = $sdoc])*
-        pub struct $nm {$(
-            $(#[doc = $fdoc])*
-            pub $f_nm: $f_ty,
-        )*}
-
-        $crate::opt::opt_macro::impl_opt_trait!($nm $(, $f_nm: $f_ty)*);
-        $crate::opt::opt_macro::impl_deref_into!($nm $(,$([attr $attr])? $f_nm: $f_ty)*);
-
-        impl ToTokens for $nm {
-            fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-                $(self.$f_nm.to_tokens(tokens);)*
-            }
-        }
-    )*};
 }
 
 /// Implement Opt trait if first field is named kw.
@@ -135,6 +139,6 @@ macro_rules! impl_deref_into {
 
 pub(super) use impl_deref_into;
 pub(super) use impl_opt_trait;
+pub(super) use impl_parse;
 pub(super) use opt;
-pub(super) use opt_lite;
 pub(super) use parse_field;
