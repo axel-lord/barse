@@ -1,6 +1,6 @@
 //! [Error] type.
 
-use ::core::{any::TypeId, fmt::Display};
+use ::core::fmt::Display;
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -62,10 +62,6 @@ pub enum Error {
     /// Error is only a message.
     Msg(&'static str),
 
-    /// Error is tracked using a [TypeId] and a payload of some kind (perhaps an index into a
-    /// list).
-    Any(TypeId, u64),
-
     /// Error is tracked using a reference to a static [::core::error::Error] implementor.
     Dyn(&'static (dyn ::core::error::Error + Send + Sync)),
 
@@ -112,7 +108,6 @@ impl Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Error::Msg(msg) => f.write_str(msg),
-            Error::Any(type_id, id) => write!(f, "type id error [{type_id:?}], {id}"),
             Error::Dyn(err) => Display::fmt(err, f),
             #[cfg(feature = "alloc")]
             Error::Box(err) => Display::fmt(err, f),
