@@ -6,19 +6,26 @@ macro_rules! opt {
         $(#[doc = $sdoc:expr])*
         $nm:ident {$(
             $(#[doc = $fdoc:expr])*
-            $(#[attr = $attr:ident])?
-            $(#[call $p:path])?
-            $(#[opt $e:expr])?
+            $([attr $attr:ident])?
+            $([call $p:path])?
+            $([opt $e:expr])?
             $f_nm:ident: $f_ty:ty,
         )*}
     ),* $(,)?) => {$(
-        $crate::opt::opt_macro::opt_lite! {
-            $(#[doc = $sdoc])*
-            $nm {$(
-                $(#[doc = $fdoc])*
-                $(#[attr = $attr])*
-                $f_nm: $f_ty,
-            )*}
+        #[derive(Debug, Clone)]
+        $(#[doc = $sdoc])*
+        pub struct $nm {$(
+            $(#[doc = $fdoc])*
+            pub $f_nm: $f_ty,
+        )*}
+
+        $crate::opt::opt_macro::impl_opt_trait!($nm $(, $f_nm: $f_ty)*);
+        $crate::opt::opt_macro::impl_deref_into!($nm $(,$([attr $attr])? $f_nm: $f_ty)*);
+
+        impl ToTokens for $nm {
+            fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+                $(self.$f_nm.to_tokens(tokens);)*
+            }
         }
 
         impl Parse for $nm {
@@ -52,7 +59,7 @@ macro_rules! opt_lite {
         $(#[doc = $sdoc:expr])*
         $nm:ident {$(
             $(#[doc = $fdoc:expr])*
-            $(#[attr = $attr:ident])?
+            $([attr $attr:ident])?
             $f_nm:ident: $f_ty:ty,
         )*}
     ),* $(,)?) => {$(
@@ -64,7 +71,7 @@ macro_rules! opt_lite {
         )*}
 
         $crate::opt::opt_macro::impl_opt_trait!($nm $(, $f_nm: $f_ty)*);
-        $crate::opt::opt_macro::impl_deref_into!($nm $(,$(#[attr = $attr])? $f_nm: $f_ty)*);
+        $crate::opt::opt_macro::impl_deref_into!($nm $(,$([attr $attr])? $f_nm: $f_ty)*);
 
         impl ToTokens for $nm {
             fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
@@ -96,13 +103,20 @@ macro_rules! impl_opt_trait {
 
 /// Implement deref to last field.
 macro_rules! impl_deref_into {
-    ($nm:ident, #[attr = deref] $f_nm:ident: $f_ty:ty $(, $(#[attr = $_att2:ident])? $_f_nm:ident:$_f_ty:ty)+) => {
+    ($nm:ident, [attr deref] $f_nm:ident: $f_ty:ty, $($tt:tt)* ) => {
         $crate::opt::opt_macro::impl_deref_into!($nm, $f_nm: $f_ty);
     };
-    ($nm:ident, $(#[attr = $_att:tt])? $_f_nm:ident: $_f_ty:ty $(, $(#[attr = $att2:tt])? $f_nm:ident:$f_ty:ty)+) => {
-        $crate::opt::opt_macro::impl_deref_into!($nm $(,$(#[attr = $att2])* $f_nm: $f_ty)*);
+    (
+        $nm:ident,
+        $([attr $($_tt:tt)*])?
+        $_f_nm:ident: $_f_ty:ty
+        $(,
+            $([attr $($att:tt)*])?
+            $f_nm:ident:$f_ty:ty
+        )+) => {
+        $crate::opt::opt_macro::impl_deref_into!($nm $(,$([attr $($att)*])* $f_nm: $f_ty)*);
     };
-    ($nm:ident, $(#[attr = $_att:tt])? $f_nm:ident: $f_ty:ty) => {
+    ($nm:ident, $([attr $($tt:tt)*])? $f_nm:ident: $f_ty:ty) => {
         impl ::core::ops::Deref for $nm {
             type Target = $f_ty;
 
