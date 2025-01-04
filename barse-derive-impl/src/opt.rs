@@ -131,7 +131,7 @@ opt! {
     /// With pattern pattern and colon.
     WithPatPat {
         /// Pattern to bind type to.
-        #[attr = deref]
+        [attr deref]
         pat: ::syn::Ident,
 
         /// ':' token.
@@ -216,7 +216,7 @@ opt! {
         eq_token: Token![=],
 
         /// Path to Barse trait.
-        #[call ::syn::Path::parse_mod_style]
+        [call ::syn::Path::parse_mod_style]
         path: ::syn::Path,
     },
 
@@ -226,7 +226,7 @@ opt! {
         kw: kw::ignore,
 
         /// Expression used instead of default().
-        #[opt Token![=]]
+        [opt Token![=]]
         value: Option<IgnoreFieldValue>,
     },
 
@@ -237,7 +237,7 @@ opt! {
         kw: kw::with,
 
         /// With expression to use.
-        #[opt Token![=]]
+        [opt Token![=]]
         expr: Option<FieldWithExpr>,
     },
 
@@ -247,7 +247,7 @@ opt! {
         kw: kw::read_with,
 
         /// With expression to use.
-        #[opt Token![=]]
+        [opt Token![=]]
         expr: Option<FieldWithExpr>,
     },
 
@@ -257,7 +257,7 @@ opt! {
         kw: kw::write_with,
 
         /// With expression to use.
-        #[opt Token![=]]
+        [opt Token![=]]
         expr: Option<FieldWithExpr>,
     },
 
@@ -268,7 +268,7 @@ opt! {
         kw: kw::err_mod,
 
         /// Name of module.
-        #[opt Token![=]]
+        [opt Token![=]]
         name: Option<ErrorModName>,
     },
 
@@ -278,7 +278,7 @@ opt! {
         kw: token::Where,
 
         /// Where predicates.
-        #[call Punctuated::parse_terminated]
+        [call Punctuated::parse_terminated]
         predicates: Punctuated<WherePredicate, Token![,]>,
     },
 }
