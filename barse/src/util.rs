@@ -5,6 +5,9 @@ pub use self::{
     slice_source::SliceSrc, use_endian::UseEndian, with_endian::WithEndian,
 };
 
+#[cfg(feature = "alloc")]
+pub use self::byte_array::boxed_byte_array::ByteBox;
+
 pub mod error;
 
 mod byte_array;
