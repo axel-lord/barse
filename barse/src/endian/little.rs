@@ -3,6 +3,10 @@
 use crate::Endian;
 
 /// Little [Endian] implementor.
+#[cfg_attr(
+    feature = "barse_as",
+    doc = "Implements [ReadAs][crate::ReadAs] and [WriteAs][crate::WriteAs]."
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Little;
 

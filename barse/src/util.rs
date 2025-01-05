@@ -23,5 +23,3 @@ mod slice_sink;
 mod with_endian;
 
 mod fixed_size;
-
-mod bytes;
