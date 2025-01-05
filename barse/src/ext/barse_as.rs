@@ -1,9 +1,9 @@
 //! Barse as extensions.
 
-use crate::{ByteSink, ByteSource, Endian, ReadAs, WriteAs};
+use crate::{ext::EmptyWith, ByteSink, ByteSource, Endian, ReadAs, WriteAs};
 
 /// Extension to [ReadAs] to read values without a with value.
-pub trait ReadAsExt<T> {
+pub trait ReadAsExt<T, S> {
     /// Use an instance to read a value of type T from source.
     ///
     /// # Errors
@@ -15,7 +15,7 @@ pub trait ReadAsExt<T> {
 }
 
 /// Extension to [WriteAs] to write values without a with value.
-pub trait WriteAsExt<T> {
+pub trait WriteAsExt<T, S> {
     /// Use an instance to write a value of type T from source.
     ///
     /// # Errors
@@ -26,9 +26,10 @@ pub trait WriteAsExt<T> {
         B: ByteSink;
 }
 
-impl<T, R> ReadAsExt<T> for R
+impl<T, R, S> ReadAsExt<T, S> for R
 where
-    R: ReadAs<T, ()>,
+    R: ReadAs<T, S>,
+    S: EmptyWith,
 {
     #[inline]
     fn read<E, B>(self, from: &mut B) -> Result<T, crate::WrappedErr<B::Err>>
@@ -36,19 +37,20 @@ where
         E: Endian,
         B: ByteSource,
     {
-        self.read_with::<E, B>(from, ())
+        self.read_with::<E, B>(from, S::instance())
     }
 }
 
-impl<T, W> WriteAsExt<T> for W
+impl<T, W, S> WriteAsExt<T, S> for W
 where
-    W: WriteAs<T, ()>,
+    W: WriteAs<T, S>,
+    S: EmptyWith,
 {
     fn write_with<E, B>(self, value: &T, to: &mut B) -> Result<(), crate::WrappedErr<B::Err>>
     where
         E: Endian,
         B: ByteSink,
     {
-        self.write_with::<E, B>(value, to, ())
+        self.write_with::<E, B>(value, to, S::instance())
     }
 }
