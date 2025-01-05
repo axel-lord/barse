@@ -24,3 +24,7 @@ test-integration:
 # Format crates.
 fmt:
 	cargo fmt --all
+
+# Check all features and targets
+check:
+	cargo check --all-features --all-targets --workspace

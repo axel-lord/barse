@@ -5,7 +5,11 @@ use crate::{
     Barse, ReadAs, WriteAs,
 };
 
-/// Endian selected at runtime, does not implement [Endian][crate::Endian] trait.
+/// Endian selected at runtime. Does not implement [Endian][crate::Endian].
+#[cfg_attr(
+    feature = "barse_as",
+    doc = "Implements [ReadAs][crate::ReadAs] and [WriteAs][crate::WriteAs]."
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub enum Runtime {
     /// Use big endian.

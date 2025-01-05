@@ -1,6 +1,36 @@
 //! Utilities for reading/writing external types.
+//!
+//! Some types are reexported from other modules as to collect all implementors here as well.
 
 use crate::{Barse, ByteSink, ByteSource, Endian};
+
+#[cfg_attr(docsrs, doc(cfg(feature = "util")))]
+#[cfg(feature = "util")]
+mod bytes;
+
+#[cfg_attr(docsrs, doc(cfg(feature = "zerocopy")))]
+#[cfg(feature = "zerocopy")]
+mod zerocopy;
+
+#[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
+#[cfg(feature = "bytemuck")]
+mod bytemuck;
+
+#[cfg(feature = "util")]
+pub use bytes::Bytes;
+
+#[doc(inline)]
+pub use crate::endian::{Big as BigEndian, Little as LittleEndian, Native as NativeEndian};
+
+#[cfg(feature = "util")]
+#[doc(inline)]
+pub use crate::endian::Runtime as RuntimeEndian;
+
+#[cfg(feature = "zerocopy")]
+pub use zerocopy::Zerocopy;
+
+#[cfg(feature = "bytemuck")]
+pub use bytemuck::Bytemuck;
 
 /// Read another type.
 pub trait ReadAs<T, W = ()> {
