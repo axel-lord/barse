@@ -43,7 +43,7 @@ pub use self::{
 
 #[cfg(feature = "barse_as")]
 #[doc(inline)]
-pub use self::barse_as::{Default, ReadAs, WriteAs};
+pub use self::barse_as::{ReadAs, WriteAs};
 
 #[doc(inline)]
 pub use self::endian::Endian;
