@@ -52,6 +52,10 @@ pub use self::endian::Endian;
 #[cfg(feature = "derive")]
 pub use barse_derive::Barse;
 
-#[cfg(all(feature = "std", feature = "ext"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "ext"))))]
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub use if_std::{read_value, write_value};
+
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub use if_std::{ReadSource, WriteSink};

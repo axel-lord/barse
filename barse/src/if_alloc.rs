@@ -17,28 +17,6 @@ impl ByteSink for alloc::vec::Vec<u8> {
     }
 }
 
-impl<Src> ByteSource for Box<Src>
-where
-    Src: ByteSource,
-{
-    type Err = Src::Err;
-
-    fn read_slice(&mut self, buf: &mut [u8]) -> Result<(), Self::Err> {
-        (**self).read_slice(buf)
-    }
-}
-
-impl<Sink> ByteSink for Box<Sink>
-where
-    Sink: ByteSink,
-{
-    type Err = Sink::Err;
-
-    fn write_slice(&mut self, buf: &[u8]) -> Result<(), Self::Err> {
-        (**self).write_slice(buf)
-    }
-}
-
 impl<T> Barse for Box<T>
 where
     T: Barse,
