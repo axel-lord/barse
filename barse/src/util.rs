@@ -2,7 +2,7 @@
 
 pub use self::{
     byte_array::ByteArray, fixed_size::FixedSize, padding::Padding, slice_sink::SliceSink,
-    slice_source::SliceSrc, use_endian::UseEndian, with_endian::WithEndian,
+    slice_source::SliceSrc, use_endian::UseEndian,
 };
 
 #[cfg(feature = "alloc")]
@@ -19,7 +19,5 @@ mod padding;
 mod slice_source;
 
 mod slice_sink;
-
-mod with_endian;
 
 mod fixed_size;
