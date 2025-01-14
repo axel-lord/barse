@@ -1,6 +1,6 @@
 //! Barse read extension.
 
-use crate::{ext::EmptyWith, Barse, ByteSource, Endian, WrappedErr};
+use crate::{Barse, ByteSource, Empty, Endian, WrappedErr};
 
 /// Extension to [Barse] for reading where no with value is needed.
 pub trait BarseReadExt: Barse {
@@ -17,7 +17,7 @@ pub trait BarseReadExt: Barse {
 impl<T> BarseReadExt for T
 where
     T: Barse,
-    T::ReadWith: EmptyWith,
+    T::ReadWith: Empty,
 {
     #[inline]
     fn read<E, B>(from: &mut B) -> Result<Self, WrappedErr<B::Err>>

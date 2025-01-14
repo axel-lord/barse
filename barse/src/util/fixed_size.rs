@@ -1,9 +1,6 @@
 //! [FixedSize] impl.
 
-use crate::{
-    util::{SliceSink, SliceSrc},
-    Barse,
-};
+use crate::{Barse, SliceSink, SliceSrc};
 
 /// Wrap a [Barse] implementor always writing and reading SIZE bytes, when writing PAD will be
 /// used to fill empty space.

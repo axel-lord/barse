@@ -4,13 +4,19 @@
 
 pub mod endian;
 
-mod error;
+pub mod error;
 
 mod barse;
 
 mod byte_source;
 
 mod byte_sink;
+
+mod empty_with;
+
+mod slice_source;
+
+mod slice_sink;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "ext")))]
 #[cfg(feature = "ext")]
@@ -34,11 +40,15 @@ mod if_alloc;
 
 mod sealed;
 
+#[doc(inline)]
 pub use self::{
     barse::Barse,
     byte_sink::ByteSink,
     byte_source::ByteSource,
+    empty_with::Empty,
     error::{Error, WrappedErr},
+    slice_sink::SliceSink,
+    slice_source::SliceSrc,
 };
 
 #[cfg(feature = "barse_as")]

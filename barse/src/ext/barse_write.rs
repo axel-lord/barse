@@ -1,6 +1,6 @@
 //! Barse write extension.
 
-use crate::{ext::EmptyWith, Barse, ByteSink, Endian, WrappedErr};
+use crate::{Barse, ByteSink, Empty, Endian, WrappedErr};
 
 /// Extension to [Barse] for wrtiting where no with value is needed.
 pub trait BarseWriteExt: Barse {
@@ -17,7 +17,7 @@ pub trait BarseWriteExt: Barse {
 impl<T> BarseWriteExt for T
 where
     T: Barse,
-    T::WriteWith: EmptyWith,
+    T::WriteWith: Empty,
 {
     #[inline]
     fn write<E, B>(&self, to: &mut B) -> Result<(), WrappedErr<B::Err>>

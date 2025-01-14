@@ -15,7 +15,8 @@ use ::std::marker::PhantomData;
 use ::barse::{
     endian::Little,
     ext::{ByteSinkExt, ByteSourceExt},
-    util::{SliceSink, SliceSrc, UseEndian},
+    util::UseEndian,
+    SliceSink, SliceSrc,
 };
 
 #[derive(Barse)]
