@@ -1,6 +1,6 @@
 //! Barse as extensions.
 
-use crate::{ext::EmptyWith, ByteSink, ByteSource, Endian, ReadAs, WriteAs};
+use crate::{ByteSink, ByteSource, Empty, Endian, ReadAs, WriteAs};
 
 /// Extension to [ReadAs] to read values without a with value.
 pub trait ReadAsExt<T, S> {
@@ -29,7 +29,7 @@ pub trait WriteAsExt<T, S> {
 impl<T, R, S> ReadAsExt<T, S> for R
 where
     R: ReadAs<T, S>,
-    S: EmptyWith,
+    S: Empty,
 {
     #[inline]
     fn read<E, B>(self, from: &mut B) -> Result<T, crate::WrappedErr<B::Err>>
@@ -44,7 +44,7 @@ where
 impl<T, W, S> WriteAsExt<T, S> for W
 where
     W: WriteAs<T, S>,
-    S: EmptyWith,
+    S: Empty,
 {
     fn write_with<E, B>(self, value: &T, to: &mut B) -> Result<(), crate::WrappedErr<B::Err>>
     where

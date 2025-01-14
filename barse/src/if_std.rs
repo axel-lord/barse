@@ -2,7 +2,7 @@
 
 use ::std::io::{Cursor, Read, Write};
 
-use crate::{ByteSink, ByteSource, WrappedErr};
+use crate::{ByteSink, ByteSource, Empty, WrappedErr};
 
 pub use self::{read_source::ReadSource, write_sink::WriteSink};
 
@@ -40,9 +40,9 @@ where
 /// Or if the bytes resulting from it cannot be written.
 pub fn write_value<T>(value: &T, to: impl Write) -> ::std::io::Result<()>
 where
-    T: crate::Barse<WriteWith = ()>,
+    T: crate::Barse<WriteWith: Empty>,
 {
-    T::write_with::<crate::endian::Native, _>(value, &mut WriteSink::new(to), ())
+    T::write_with::<crate::endian::Native, _>(value, &mut WriteSink::new(to), Empty::instance())
         .map_err(WrappedErr::merge_into)
 }
 
@@ -53,8 +53,8 @@ where
 /// Or if the bytes needed cannot be read.
 pub fn read_value<T>(from: impl Read) -> ::std::io::Result<T>
 where
-    T: crate::Barse<ReadWith = ()>,
+    T: crate::Barse<ReadWith: Empty>,
 {
-    T::read_with::<crate::endian::Native, _>(&mut ReadSource::new(from), ())
+    T::read_with::<crate::endian::Native, _>(&mut ReadSource::new(from), Empty::instance())
         .map_err(WrappedErr::merge_into)
 }
