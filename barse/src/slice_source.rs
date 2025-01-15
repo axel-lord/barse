@@ -43,6 +43,19 @@ impl<'src> SliceSrc<'src> {
         (unsafe { self.tail.offset_from(self.head) } as usize)
     }
 
+    /// Skip count bytes if possible.
+    ///
+    /// # Returns
+    /// True if bytes were skipped and false otherwise.
+    #[must_use]
+    const fn skip_bytes(&mut self, count: usize) -> bool {
+        if self.remaining_cap() < count {
+            return false;
+        }
+        self.head = unsafe { self.head.add(count) };
+        true
+    }
+
     /// Get next slice of specified size if possible.
     /// Head will be moved past it.
     ///
@@ -96,23 +109,11 @@ impl ByteSource for SliceSrc<'_> {
     }
 
     fn skip(&mut self, count: usize) -> Result<(), Self::Err> {
-        if self.remaining_cap() < count {
-            return Err(SliceSrcEmpty);
-        }
-
-        self.head = unsafe { self.head.add(count) };
-
-        Ok(())
+        self.skip_bytes(count).then_some(()).ok_or(SliceSrcEmpty)
     }
 
     fn skip_n<const N: usize>(&mut self) -> Result<(), Self::Err> {
-        if self.remaining_cap() < N {
-            return Err(SliceSrcEmpty);
-        }
-
-        self.head = unsafe { self.head.add(N) };
-
-        Ok(())
+        self.skip_bytes(N).then_some(()).ok_or(SliceSrcEmpty)
     }
 
     fn remaining(&self) -> Option<usize> {
