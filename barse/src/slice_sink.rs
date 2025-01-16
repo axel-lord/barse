@@ -1,20 +1,12 @@
 //! [SliceSink] implementation.
 
-use ::core::{marker::PhantomData, ops::Range, ptr::NonNull};
-
 use crate::{error::SliceSinkFull, ByteSink};
 
 /// [ByteSink] implementor wrapping a slice.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SliceSink<'src> {
-    /// Current head of slice.
-    head: NonNull<u8>,
-
-    /// Current tail of slice.
-    tail: NonNull<u8>,
-
-    /// Indicate ownership of slice.
-    _p: PhantomData<&'src mut [u8]>,
+    /// Wrapped slice.
+    slice: &'src mut [u8],
 }
 
 impl Default for SliceSink<'_> {
@@ -28,19 +20,9 @@ unsafe impl Sync for SliceSink<'_> {}
 
 impl<'src> SliceSink<'src> {
     /// Create a new [SliceSink] backed by given slice.
+    #[inline]
     pub const fn new(slice: &'src mut [u8]) -> Self {
-        let Range { start, end } = slice.as_mut_ptr_range();
-        Self {
-            // Safe since slice pointers may not be null.
-            head: unsafe { NonNull::new_unchecked(start) },
-            tail: unsafe { NonNull::new_unchecked(end) },
-            _p: PhantomData,
-        }
-    }
-
-    /// Get current length, same as remaining write capacity.
-    const fn remaining_cap(&self) -> usize {
-        (unsafe { self.tail.offset_from(self.head) } as usize)
+        Self { slice }
     }
 
     /// Get next slice of specified size if possible.
@@ -48,38 +30,55 @@ impl<'src> SliceSink<'src> {
     ///
     /// # Safety
     /// If a slice is returned it is guaranteed to have a length of size.
+    #[inline]
     pub const fn next_slice(&mut self, size: usize) -> Option<&'src mut [u8]> {
-        if size > self.remaining_cap() {
+        // Get length of replacement slice. If size is larger than current length fail.
+        let Some(new_len) = self.slice.len().checked_sub(size) else {
             return None;
-        }
+        };
 
-        // Since size will not push head past tail this is safe.
-        let slice = unsafe { ::core::slice::from_raw_parts_mut(self.head.as_ptr(), size) };
+        // Save start position.
+        let start = self.slice.as_mut_ptr();
 
-        // Move head past slice.
-        self.head = unsafe { self.head.add(size) };
+        // New start position.
+        // Safe as new_len exists.
+        let new_start = unsafe { start.add(size) };
 
-        Some(slice)
+        // Replace contained slice.
+        self.slice = unsafe { ::core::slice::from_raw_parts_mut(new_start, new_len) };
+
+        // Return slice we have moved past.
+        Some(unsafe { ::core::slice::from_raw_parts_mut(start, size) })
     }
 
     /// Get next array ref of specified size.
     /// Head will be moved past it.
+    #[inline]
     pub const fn next_array_mut<const SIZE: usize>(&mut self) -> Option<&'src mut [u8; SIZE]> {
-        if SIZE > self.remaining_cap() {
+        // Get length of replacement slice. If size is larger than current length fail.
+        let Some(new_len) = self.slice.len().checked_sub(SIZE) else {
             return None;
-        }
+        };
 
-        // Both of these are safe since we checked against remaining capacity.
-        let slice = unsafe { self.head.cast().as_mut() };
-        self.head = unsafe { self.head.add(SIZE) };
+        // Save start position.
+        let start = self.slice.as_mut_ptr();
 
-        Some(slice)
+        // New start position.
+        // Safe as new_len exists.
+        let new_start = unsafe { start.add(SIZE) };
+
+        // Replace contained slice.
+        self.slice = unsafe { ::core::slice::from_raw_parts_mut(new_start, new_len) };
+
+        // Return slice we have moved past.
+        Some(unsafe { &mut *start.cast() })
     }
 }
 
 impl ByteSink for SliceSink<'_> {
     type Err = SliceSinkFull;
 
+    #[inline]
     fn write_slice(&mut self, buf: &[u8]) -> Result<(), Self::Err> {
         self.next_slice(buf.len())
             .ok_or(SliceSinkFull)?
@@ -88,18 +87,21 @@ impl ByteSink for SliceSink<'_> {
         Ok(())
     }
 
+    #[inline]
     fn write_byte(&mut self, byte: u8) -> Result<(), Self::Err> {
         let [to] = self.next_array_mut().ok_or(SliceSinkFull)?;
         *to = byte;
         Ok(())
     }
 
+    #[inline]
     fn write_array<const N: usize>(&mut self, bytes: [u8; N]) -> Result<(), Self::Err> {
         *self.next_array_mut().ok_or(SliceSinkFull)? = bytes;
         Ok(())
     }
 
+    #[inline]
     fn remaining(&self) -> Option<usize> {
-        Some(self.remaining_cap())
+        Some(self.slice.len())
     }
 }
