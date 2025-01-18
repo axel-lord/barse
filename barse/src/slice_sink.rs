@@ -170,4 +170,42 @@ mod tests {
         assert!(sink.is_empty());
         assert_eq!(SliceSink::default(), SliceSink::new(&mut []));
     }
+
+    #[test]
+    fn write_slice() {
+        const LEN: usize = 128;
+        const MESSAGES: &[&[u8]] = &[
+            b"Hello There!",
+            b"Nice Weather!",
+            b"abcdefg",
+            b"Test String Cool",
+        ];
+
+        let mut buf = [0u8; 128];
+        for msg in MESSAGES {
+            let mut sink = SliceSink::new(&mut buf);
+            sink.write_slice(msg).expect("write should succeed");
+
+            assert_eq!(msg.len(), LEN - sink.len());
+            assert_eq!(&buf[..msg.len()], *msg);
+        }
+
+        let mut sink = SliceSink::new(&mut buf);
+        let mut acc = 0;
+        for msg in MESSAGES {
+            let len = sink.len();
+            acc += msg.len();
+            sink.write_slice(msg).expect("write should succeed");
+
+            assert_eq!(len - msg.len(), sink.len());
+        }
+        assert_eq!(acc, LEN - sink.len());
+
+        let mut start = 0;
+        for msg in MESSAGES {
+            let end = start + msg.len();
+            assert_eq!(&buf[start..end], *msg);
+            start = end;
+        }
+    }
 }
