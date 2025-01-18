@@ -1,12 +1,20 @@
 //! [SliceSink] implementation.
 
+use ::core::{hash::Hash, marker::PhantomData, ptr::NonNull};
+
 use crate::{error::SliceSinkFull, ByteSink};
 
 /// [ByteSink] implementor wrapping a slice.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug)]
 pub struct SliceSink<'src> {
-    /// Wrapped slice.
-    slice: &'src mut [u8],
+    /// Pointer to slice.
+    ptr: NonNull<u8>,
+
+    /// Length remaining.
+    len: usize,
+
+    /// Lifetime
+    _p: PhantomData<&'src mut [u8]>,
 }
 
 impl Default for SliceSink<'_> {
@@ -22,7 +30,47 @@ impl<'src> SliceSink<'src> {
     /// Create a new [SliceSink] backed by given slice.
     #[inline]
     pub const fn new(slice: &'src mut [u8]) -> Self {
-        Self { slice }
+        Self {
+            ptr: unsafe { NonNull::new_unchecked(slice.as_mut_ptr()) },
+            len: slice.len(),
+            _p: PhantomData,
+        }
+    }
+
+    /// Get remaining bytes as a slice.
+    const fn as_ref(&self) -> &[u8] {
+        unsafe { ::core::slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
+    }
+
+    /// Get how many more bytes may be written.
+    pub const fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns `true` if no more bytes may be written.
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Move past current ptr by size if possible and return old ptr.
+    ///
+    /// # Safety
+    /// If Some, the internal pointer has moved by size bytes.
+    const fn next_ptr(&mut self, size: usize) -> Option<NonNull<u8>> {
+        // Get length of replacement slice. If size is larger than current length fail.
+        // Ensures size <= self.len.
+        let Some(len) = self.len.checked_sub(size) else {
+            return None;
+        };
+
+        // Get start of returned slice.
+        let start = self.ptr;
+
+        // Move past size. Safe as size <= len.
+        self.ptr = unsafe { self.ptr.add(size) };
+        self.len = len;
+
+        Some(start)
     }
 
     /// Get next slice of specified size if possible.
@@ -32,46 +80,44 @@ impl<'src> SliceSink<'src> {
     /// If a slice is returned it is guaranteed to have a length of size.
     #[inline]
     pub const fn next_slice(&mut self, size: usize) -> Option<&'src mut [u8]> {
-        // Get length of replacement slice. If size is larger than current length fail.
-        let Some(new_len) = self.slice.len().checked_sub(size) else {
-            return None;
-        };
-
-        // Save start position.
-        let start = self.slice.as_mut_ptr();
-
-        // New start position.
-        // Safe as new_len exists.
-        let new_start = unsafe { start.add(size) };
-
-        // Replace contained slice.
-        self.slice = unsafe { ::core::slice::from_raw_parts_mut(new_start, new_len) };
-
-        // Return slice we have moved past.
-        Some(unsafe { ::core::slice::from_raw_parts_mut(start, size) })
+        if let Some(start) = self.next_ptr(size) {
+            Some(unsafe { ::core::slice::from_raw_parts_mut(start.as_ptr(), size) })
+        } else {
+            None
+        }
     }
 
     /// Get next array ref of specified size.
     /// Head will be moved past it.
     #[inline]
     pub const fn next_array_mut<const SIZE: usize>(&mut self) -> Option<&'src mut [u8; SIZE]> {
-        // Get length of replacement slice. If size is larger than current length fail.
-        let Some(new_len) = self.slice.len().checked_sub(SIZE) else {
-            return None;
-        };
+        if let Some(start) = self.next_ptr(SIZE) {
+            Some(unsafe { start.cast().as_mut() })
+        } else {
+            None
+        }
+    }
+}
 
-        // Save start position.
-        let start = self.slice.as_mut_ptr();
-
-        // New start position.
-        // Safe as new_len exists.
-        let new_start = unsafe { start.add(SIZE) };
-
-        // Replace contained slice.
-        self.slice = unsafe { ::core::slice::from_raw_parts_mut(new_start, new_len) };
-
-        // Return slice we have moved past.
-        Some(unsafe { &mut *start.cast() })
+impl PartialEq for SliceSink<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+impl Eq for SliceSink<'_> {}
+impl Hash for SliceSink<'_> {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state);
+    }
+}
+impl Ord for SliceSink<'_> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+impl PartialOrd for SliceSink<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -102,6 +148,26 @@ impl ByteSink for SliceSink<'_> {
 
     #[inline]
     fn remaining(&self) -> Option<usize> {
-        Some(self.slice.len())
+        Some(self.len)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::missing_panics_doc)]
+    use super::*;
+
+    #[test]
+    fn empty_sink() {
+        let mut sink = SliceSink::default();
+
+        assert_eq!(sink.write_slice(b"Hello!"), Err(SliceSinkFull));
+        assert_eq!(sink.write_array(*b"Hi..."), Err(SliceSinkFull));
+        assert_eq!(sink.write_slice(b""), Ok(()));
+        assert_eq!(sink.write_array(*b""), Ok(()));
+        assert_eq!(sink.write_byte(b'T'), Err(SliceSinkFull));
+        assert_eq!(sink.len(), 0);
+        assert!(sink.is_empty());
+        assert_eq!(SliceSink::default(), SliceSink::new(&mut []));
     }
 }
