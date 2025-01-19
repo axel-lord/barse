@@ -1,26 +1,15 @@
 //! [SliceSink] implementation.
 
-use ::core::{hash::Hash, marker::PhantomData, ptr::NonNull};
+use ::core::{hash::Hash, ptr::NonNull};
 
 use crate::{error::SliceSinkFull, ByteSink};
 
 /// [ByteSink] implementor wrapping a slice.
-#[derive(Debug)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct SliceSink<'src> {
-    /// Pointer to slice.
-    ptr: NonNull<u8>,
-
-    /// Length remaining.
-    len: usize,
-
-    /// Lifetime
-    _p: PhantomData<&'src mut [u8]>,
-}
-
-impl Default for SliceSink<'_> {
-    fn default() -> Self {
-        Self::new(&mut [])
-    }
+    /// Wrapped slice.
+    slice: &'src mut [u8],
 }
 
 unsafe impl Send for SliceSink<'_> {}
@@ -30,26 +19,22 @@ impl<'src> SliceSink<'src> {
     /// Create a new [SliceSink] backed by given slice.
     #[inline]
     pub const fn new(slice: &'src mut [u8]) -> Self {
-        Self {
-            ptr: unsafe { NonNull::new_unchecked(slice.as_mut_ptr()) },
-            len: slice.len(),
-            _p: PhantomData,
-        }
+        Self { slice }
     }
 
     /// Get remaining bytes as a slice.
-    const fn as_ref(&self) -> &[u8] {
-        unsafe { ::core::slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
+    pub const fn as_bytes(&self) -> &[u8] {
+        self.slice
     }
 
     /// Get how many more bytes may be written.
     pub const fn len(&self) -> usize {
-        self.len
+        self.slice.len()
     }
 
     /// Returns `true` if no more bytes may be written.
     pub const fn is_empty(&self) -> bool {
-        self.len == 0
+        self.slice.is_empty()
     }
 
     /// Move past current ptr by size if possible and return old ptr.
@@ -59,18 +44,19 @@ impl<'src> SliceSink<'src> {
     const fn next_ptr(&mut self, size: usize) -> Option<NonNull<u8>> {
         // Get length of replacement slice. If size is larger than current length fail.
         // Ensures size <= self.len.
-        let Some(len) = self.len.checked_sub(size) else {
+        let Some(len) = self.slice.len().checked_sub(size) else {
             return None;
         };
 
         // Get start of returned slice.
-        let start = self.ptr;
+        let start = self.slice.as_mut_ptr();
 
-        // Move past size. Safe as size <= len.
-        self.ptr = unsafe { self.ptr.add(size) };
-        self.len = len;
+        // Since len exists and is smaller than old len by size we know slice is valid.
+        self.slice = unsafe { ::core::slice::from_raw_parts_mut(start.add(size), len) };
 
-        Some(start)
+        // Since start is gotten from a slice we know it is not null.
+        // Slice has also already been replaced.
+        Some(unsafe { NonNull::new_unchecked(start) })
     }
 
     /// Get next slice of specified size if possible.
@@ -96,28 +82,6 @@ impl<'src> SliceSink<'src> {
         } else {
             None
         }
-    }
-}
-
-impl PartialEq for SliceSink<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-impl Eq for SliceSink<'_> {}
-impl Hash for SliceSink<'_> {
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        self.as_ref().hash(state);
-    }
-}
-impl Ord for SliceSink<'_> {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-impl PartialOrd for SliceSink<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -148,7 +112,7 @@ impl ByteSink for SliceSink<'_> {
 
     #[inline]
     fn remaining(&self) -> Option<usize> {
-        Some(self.len)
+        Some(self.len())
     }
 }
 

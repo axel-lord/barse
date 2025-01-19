@@ -1,6 +1,6 @@
 //! [SliceSrc] implementation.
 
-use ::core::{hash::Hash, marker::PhantomData, ptr::NonNull};
+use ::core::{hash::Hash, ptr::NonNull};
 
 use crate::{error::SliceSrcEmpty, ByteSource};
 
@@ -8,64 +8,33 @@ use crate::{error::SliceSrcEmpty, ByteSource};
 ///
 /// The head may be higher than the slice length but not higher than isize::MAX (functions using
 /// the head may panic).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct SliceSrc<'src> {
-    /// Pointer to slice.
-    ptr: NonNull<u8>,
-
-    /// Length remaining.
-    len: usize,
-
-    /// Indicate lifetime.
-    _p: PhantomData<&'src [u8]>,
-}
-
-impl Default for SliceSrc<'_> {
-    fn default() -> Self {
-        Self::new(&[])
-    }
+    /// Wrapped slice.
+    slice: &'src [u8],
 }
 
 impl<'src> SliceSrc<'src> {
     /// Create a new [SliceSrc] backed by given slice.
     #[inline]
     pub const fn new(slice: &'src [u8]) -> Self {
-        Self {
-            ptr: unsafe { NonNull::new_unchecked(slice.as_ptr() as *mut u8) },
-            len: slice.len(),
-            _p: PhantomData,
-        }
+        Self { slice }
     }
 
     /// Get remaining bytes as a slice.
-    const fn as_ref(&self) -> &[u8] {
-        unsafe { ::core::slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
+    pub const fn as_bytes(&self) -> &[u8] {
+        self.slice
     }
 
     /// Get how many more bytes may be read.
     pub const fn len(&self) -> usize {
-        self.len
+        self.slice.len()
     }
 
     /// Returns `true` if no more bytes may be read.
     pub const fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    /// Skip count bytes if possible.
-    ///
-    /// # Returns
-    /// True if bytes were skipped and false otherwise.
-    #[inline]
-    #[must_use]
-    const fn skip_bytes(&mut self, count: usize) -> bool {
-        if let Some(len) = self.len.checked_sub(count) {
-            self.ptr = unsafe { self.ptr.add(count) };
-            self.len = len;
-            true
-        } else {
-            false
-        }
+        self.slice.is_empty()
     }
 
     /// Move past current ptr by size if possible and return old ptr.
@@ -76,18 +45,29 @@ impl<'src> SliceSrc<'src> {
     const fn next_ptr(&mut self, size: usize) -> Option<NonNull<u8>> {
         // Get length of replacement slice. If size is larger than current length fail.
         // Ensures size <= self.len.
-        let Some(len) = self.len.checked_sub(size) else {
+        let Some(len) = self.slice.len().checked_sub(size) else {
             return None;
         };
 
         // Get start of returned slice.
-        let start = self.ptr;
+        let start = self.slice.as_ptr();
 
-        // Move past size. Safe as size <= len.
-        self.ptr = unsafe { self.ptr.add(size) };
-        self.len = len;
+        // Since len exists and is smaller than old len by size we know slice is valid.
+        self.slice = unsafe { ::core::slice::from_raw_parts(start.add(size), len) };
 
-        Some(start)
+        // Since start is gotten from a slice we know it is not null.
+        // Slice has also already been replaced.
+        Some(unsafe { NonNull::new_unchecked(start as *mut u8) })
+    }
+
+    /// Skip count bytes if possible.
+    ///
+    /// # Returns
+    /// True if bytes were skipped and false otherwise.
+    #[inline]
+    #[must_use]
+    const fn skip_bytes(&mut self, count: usize) -> bool {
+        self.next_ptr(count).is_some()
     }
 
     /// Get next slice of specified size if possible.
@@ -113,28 +93,6 @@ impl<'src> SliceSrc<'src> {
         } else {
             None
         }
-    }
-}
-
-impl PartialEq for SliceSrc<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-impl Eq for SliceSrc<'_> {}
-impl Hash for SliceSrc<'_> {
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        self.as_ref().hash(state);
-    }
-}
-impl Ord for SliceSrc<'_> {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-impl PartialOrd for SliceSrc<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -171,6 +129,6 @@ impl ByteSource for SliceSrc<'_> {
 
     #[inline]
     fn remaining(&self) -> Option<usize> {
-        Some(self.len)
+        Some(self.len())
     }
 }
