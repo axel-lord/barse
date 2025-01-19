@@ -132,3 +132,47 @@ impl ByteSource for SliceSrc<'_> {
         Some(self.len())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::missing_panics_doc)]
+    use super::*;
+
+    #[test]
+    fn empty_source() {
+        let mut source = SliceSrc::default();
+
+        assert_eq!(source.read_slice(&mut [0u8; 16]), Err(SliceSrcEmpty));
+        assert_eq!(source.read_array::<1>(), Err(SliceSrcEmpty));
+        assert_eq!(source.skip(1), Err(SliceSrcEmpty));
+        assert_eq!(source.read_byte(), Err(SliceSrcEmpty));
+        assert_eq!(source.skip_n::<6>(), Err(SliceSrcEmpty));
+        assert_eq!(source.remaining(), Some(0));
+        assert_eq!(source.len(), 0);
+        assert_eq!(source.read_slice(&mut [0u8; 0]), Ok(()));
+        assert!(source.is_empty());
+    }
+
+    #[test]
+    fn read_slice() {
+        let buf = b"hello there! Nice weather! Cool!";
+        let mut source = SliceSrc::new(buf);
+
+        let mut buf_a = [0u8; 12];
+        let mut buf_b = [0u8; 5];
+
+        assert_eq!(source.read_slice(&mut buf_a), Ok(()));
+        assert_eq!(&buf_a, b"hello there!");
+        assert_eq!(source.read_byte(), Ok(b' '));
+        assert_eq!(source.skip_n::<128>(), Err(SliceSrcEmpty));
+        assert_eq!(source.read_array::<13>(), Ok(*b"Nice weather!"));
+        assert_eq!(source.read_byte(), Ok(b' '));
+        assert_eq!(source.read_slice(&mut buf_b), Ok(()));
+        assert_eq!(&buf_b, b"Cool!");
+        assert_eq!(source.remaining(), Some(0));
+        assert_eq!(source.len(), 0);
+        assert_eq!(source.skip(1), Err(SliceSrcEmpty));
+        assert_eq!(source.skip(0), Ok(()));
+        assert!(source.is_empty());
+    }
+}
