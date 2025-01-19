@@ -12,9 +12,6 @@ pub struct SliceSink<'src> {
     slice: &'src mut [u8],
 }
 
-unsafe impl Send for SliceSink<'_> {}
-unsafe impl Sync for SliceSink<'_> {}
-
 impl<'src> SliceSink<'src> {
     /// Create a new [SliceSink] backed by given slice.
     #[inline]
