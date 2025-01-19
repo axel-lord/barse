@@ -21,6 +21,10 @@ test:
 test-integration:
 	cargo test -p tests
 
+# Run tests using miri
+test-miri:
+	cargo miri test
+
 # Format crates.
 fmt:
 	cargo fmt --all
