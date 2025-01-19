@@ -130,6 +130,7 @@ mod tests {
         assert_eq!(sink.write_slice(b""), Ok(()));
         assert_eq!(sink.write_array(*b""), Ok(()));
         assert_eq!(sink.write_byte(b'T'), Err(SliceSinkFull));
+        assert_eq!(sink.remaining(), Some(0));
         assert_eq!(sink.len(), 0);
         assert!(sink.is_empty());
         assert_eq!(SliceSink::default(), SliceSink::new(&mut []));
