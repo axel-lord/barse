@@ -1,6 +1,6 @@
 //! [SliceSrc] implementation.
 
-use ::core::{hash::Hash, ptr::NonNull};
+use ::core::hash::Hash;
 
 use crate::{error::SliceSrcEmpty, ByteSource};
 
@@ -23,16 +23,19 @@ impl<'src> SliceSrc<'src> {
     }
 
     /// Get remaining bytes as a slice.
+    #[inline]
     pub const fn as_bytes(&self) -> &[u8] {
         self.slice
     }
 
     /// Get how many more bytes may be read.
+    #[inline]
     pub const fn len(&self) -> usize {
         self.slice.len()
     }
 
     /// Returns `true` if no more bytes may be read.
+    #[inline]
     pub const fn is_empty(&self) -> bool {
         self.slice.is_empty()
     }
@@ -42,11 +45,11 @@ impl<'src> SliceSrc<'src> {
     /// # Safety
     /// If Some, the internal pointer has been moved by size bytes.
     #[inline]
-    const fn next_ptr(&mut self, size: usize) -> Option<NonNull<u8>> {
+    const fn next_ptr(&mut self, size: usize) -> *const u8 {
         // Get length of replacement slice. If size is larger than current length fail.
         // Ensures size <= self.len.
         let Some(len) = self.slice.len().checked_sub(size) else {
-            return None;
+            return ::core::ptr::null();
         };
 
         // Get start of returned slice.
@@ -55,9 +58,7 @@ impl<'src> SliceSrc<'src> {
         // Since len exists and is smaller than old len by size we know slice is valid.
         self.slice = unsafe { ::core::slice::from_raw_parts(start.add(size), len) };
 
-        // Since start is gotten from a slice we know it is not null.
-        // Slice has also already been replaced.
-        Some(unsafe { NonNull::new_unchecked(start as *mut u8) })
+        start
     }
 
     /// Skip count bytes if possible.
@@ -67,7 +68,7 @@ impl<'src> SliceSrc<'src> {
     #[inline]
     #[must_use]
     const fn skip_bytes(&mut self, count: usize) -> bool {
-        self.next_ptr(count).is_some()
+        !self.next_ptr(count).is_null()
     }
 
     /// Get next slice of specified size if possible.
@@ -77,10 +78,11 @@ impl<'src> SliceSrc<'src> {
     /// If a slice is returned it is guaranteed to have a length of size.
     #[inline]
     pub const fn next_slice(&mut self, size: usize) -> Option<&'src [u8]> {
-        if let Some(start) = self.next_ptr(size) {
-            Some(unsafe { ::core::slice::from_raw_parts(start.as_ptr(), size) })
-        } else {
+        let start = self.next_ptr(size);
+        if start.is_null() {
             None
+        } else {
+            Some(unsafe { ::core::slice::from_raw_parts(start, size) })
         }
     }
 
@@ -88,10 +90,11 @@ impl<'src> SliceSrc<'src> {
     /// Head will be moved past it.
     #[inline]
     pub const fn next_array<const SIZE: usize>(&mut self) -> Option<&'src [u8; SIZE]> {
-        if let Some(start) = self.next_ptr(SIZE) {
-            Some(unsafe { start.cast().as_ref() })
-        } else {
+        let start = self.next_ptr(SIZE);
+        if start.is_null() {
             None
+        } else {
+            Some(unsafe { &*start.cast() })
         }
     }
 }

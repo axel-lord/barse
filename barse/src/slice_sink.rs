@@ -1,6 +1,6 @@
 //! [SliceSink] implementation.
 
-use ::core::{hash::Hash, ptr::NonNull};
+use ::core::hash::Hash;
 
 use crate::{error::SliceSinkFull, ByteSink};
 
@@ -20,16 +20,19 @@ impl<'src> SliceSink<'src> {
     }
 
     /// Get remaining bytes as a slice.
+    #[inline]
     pub const fn as_bytes(&self) -> &[u8] {
         self.slice
     }
 
     /// Get how many more bytes may be written.
+    #[inline]
     pub const fn len(&self) -> usize {
         self.slice.len()
     }
 
     /// Returns `true` if no more bytes may be written.
+    #[inline]
     pub const fn is_empty(&self) -> bool {
         self.slice.is_empty()
     }
@@ -38,11 +41,13 @@ impl<'src> SliceSink<'src> {
     ///
     /// # Safety
     /// If Some, the internal pointer has moved by size bytes.
-    const fn next_ptr(&mut self, size: usize) -> Option<NonNull<u8>> {
+    /// The returned pointer will be null on failure.
+    #[inline]
+    const fn next_ptr(&mut self, size: usize) -> *mut u8 {
         // Get length of replacement slice. If size is larger than current length fail.
         // Ensures size <= self.len.
         let Some(len) = self.slice.len().checked_sub(size) else {
-            return None;
+            return ::core::ptr::null_mut();
         };
 
         // Get start of returned slice.
@@ -51,9 +56,7 @@ impl<'src> SliceSink<'src> {
         // Since len exists and is smaller than old len by size we know slice is valid.
         self.slice = unsafe { ::core::slice::from_raw_parts_mut(start.add(size), len) };
 
-        // Since start is gotten from a slice we know it is not null.
-        // Slice has also already been replaced.
-        Some(unsafe { NonNull::new_unchecked(start) })
+        start
     }
 
     /// Get next slice of specified size if possible.
@@ -63,10 +66,11 @@ impl<'src> SliceSink<'src> {
     /// If a slice is returned it is guaranteed to have a length of size.
     #[inline]
     pub const fn next_slice(&mut self, size: usize) -> Option<&'src mut [u8]> {
-        if let Some(start) = self.next_ptr(size) {
-            Some(unsafe { ::core::slice::from_raw_parts_mut(start.as_ptr(), size) })
-        } else {
+        let start = self.next_ptr(size);
+        if start.is_null() {
             None
+        } else {
+            Some(unsafe { ::core::slice::from_raw_parts_mut(start, size) })
         }
     }
 
@@ -74,10 +78,11 @@ impl<'src> SliceSink<'src> {
     /// Head will be moved past it.
     #[inline]
     pub const fn next_array_mut<const SIZE: usize>(&mut self) -> Option<&'src mut [u8; SIZE]> {
-        if let Some(start) = self.next_ptr(SIZE) {
-            Some(unsafe { start.cast().as_mut() })
-        } else {
+        let start = self.next_ptr(SIZE);
+        if start.is_null() {
             None
+        } else {
+            Some(unsafe { &mut *start.cast() })
         }
     }
 }
